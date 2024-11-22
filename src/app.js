@@ -1,15 +1,15 @@
 const express = require("express");
 
+const connectDB = require("./config/database");
 const app = express();
 
-app.use("/ganesh", (req,res)=>{
-  res.send("Hello from ganesh's server..!");
-});
-
-app.use("/dashboard", (req,res)=>{
-  res.send("Hello from dashboard..!");
-});
-
-app.listen(3001, () => {
-  console.log("Server is successfully listening on port 3001...");
-});
+connectDB().then(()=>{
+  console.log("Database connection established....");
+  app.listen(3001, () => {
+    console.log("Server is successfully listening on port 3001...");
+  }); 
+})
+.catch(err=>{
+  console.error("Database connection failed...");
+})
+ 
