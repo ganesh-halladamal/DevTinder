@@ -20,6 +20,15 @@ const userSchema = new mongoose.Schema({
     lowercase: true, // Converts to lowercase
     match: [/\S+@\S+\.\S+/, 'Please provide a valid email address'], // Regex for email validation
   },
+  password: {
+    type: String,
+  },
+  age: {
+    type: Number,
+  },
+  gender:{
+    type: String,
+  },
   createdAt: {
     type: Date,
     default: Date.now, // Automatically sets the date of creation
