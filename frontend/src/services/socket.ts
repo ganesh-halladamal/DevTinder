@@ -1,0 +1,100 @@
+import { io, Socket } from 'socket.io-client';
+
+class SocketService {
+  private socket: Socket | null = null;
+  private static instance: SocketService;
+
+  private constructor() {}
+
+  static getInstance(): SocketService {
+    if (!SocketService.instance) {
+      SocketService.instance = new SocketService();
+    }
+    return SocketService.instance;
+  }
+
+  connect(token: string): Socket {
+    if (!this.socket) {
+      this.socket = io(import.meta.env.VITE_SOCKET_URL, {
+        auth: { token },
+        transports: ['websocket'],
+        autoConnect: true
+      });
+
+      this.socket.on('connect', () => {
+        console.log('Socket connected');
+      });
+
+      this.socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+      });
+
+      this.socket.on('disconnect', (reason) => {
+        console.log('Socket disconnected:', reason);
+      });
+    }
+
+    return this.socket;
+  }
+
+  disconnect(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  getSocket(): Socket | null {
+    return this.socket;
+  }
+
+  // Message handling
+  sendMessage(matchId: string, content: string, attachments: any[] = []): void {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
+    }
+
+    this.socket.emit('private_message', {
+      matchId,
+      content,
+      attachments
+    });
+  }
+
+  // Typing indicators
+  sendTypingStart(matchId: string): void {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
+    }
+
+    this.socket.emit('typing_start', matchId);
+  }
+
+  sendTypingStop(matchId: string): void {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
+    }
+
+    this.socket.emit('typing_stop', matchId);
+  }
+
+  // Read receipts
+  markMessageAsRead(messageId: string): void {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
+    }
+
+    this.socket.emit('mark_read', messageId);
+  }
+
+  // Match notifications
+  sendMatchNotification(matchedUserId: string): void {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
+    }
+
+    this.socket.emit('new_match', { matchedUserId });
+  }
+}
+
+export default SocketService.getInstance(); 
