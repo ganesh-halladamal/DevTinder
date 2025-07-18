@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dependencies
 node_modules/
 /.pnp
@@ -50,3 +51,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local 
+=======
+node_modules
+
+>>>>>>> 149629b42f8358b448f5c8672e19354ea49e2f79
