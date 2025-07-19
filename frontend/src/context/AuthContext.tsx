@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { authAPI } from '../services/api';
 
 interface User {
   id: string;
@@ -8,6 +8,11 @@ interface User {
   name: string;
   avatar?: string;
   role: string;
+}
+
+interface AuthResponse {
+  token: string;
+  user: User;
 }
 
 interface AuthContextType {
@@ -42,10 +47,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const response = await axios.get('/api/auth/me', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          setUser(response.data.user);
+          const response = await authAPI.getCurrentUser();
+          setUser(response.data.user as User);
         } catch (error) {
           console.error('Auth check failed:', error);
           localStorage.removeItem('token');
@@ -57,41 +60,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, []);
 
-  // Set up axios interceptors
-  useEffect(() => {
-    const requestInterceptor = axios.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    const responseInterceptor = axios.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        if (error.response?.status === 401) {
-          setUser(null);
-          localStorage.removeItem('token');
-          navigate('/login');
-        }
-        return Promise.reject(error);
-      }
-    );
-
-    return () => {
-      axios.interceptors.request.eject(requestInterceptor);
-      axios.interceptors.response.eject(responseInterceptor);
-    };
-  }, [navigate]);
-
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      const { token, user } = response.data;
+      const response = await authAPI.login(email, password);
+      const { token, user } = response.data as AuthResponse;
       localStorage.setItem('token', token);
       setUser(user);
       navigate('/');
@@ -103,12 +75,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (email: string, password: string, name: string) => {
     try {
-      const response = await axios.post('/api/auth/register', {
+      const response = await authAPI.register({
         email,
         password,
         name
       });
-      const { token, user } = response.data;
+      const { token, user } = response.data as AuthResponse;
       localStorage.setItem('token', token);
       setUser(user);
       navigate('/');
@@ -124,12 +96,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     navigate('/login');
   };
 
+  const apiUrl = import.meta.env.VITE_API_URL as string || 'http://localhost:5000/api';
+
   const loginWithGithub = () => {
-    window.location.href = '/api/auth/github';
+    window.location.href = `${apiUrl}/auth/github`;
   };
 
   const loginWithGoogle = () => {
-    window.location.href = '/api/auth/google';
+    window.location.href = `${apiUrl}/auth/google`;
   };
 
   const value = {

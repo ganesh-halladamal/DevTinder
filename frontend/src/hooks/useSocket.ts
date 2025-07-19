@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
-import { useAuth } from './useAuth';
-import socketService from '@services/socket';
+import { useAuth } from '../context/AuthContext';
+import socketService from '../services/socket';
 
 interface UseSocketOptions {
   onConnect?: () => void;

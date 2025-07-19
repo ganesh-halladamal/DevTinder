@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import { useSocket } from './useSocket';
+import { messagesAPI } from '../services/api';
 
 interface Message {
   id: string;
@@ -28,6 +28,16 @@ interface ChatState {
   page: number;
 }
 
+interface MessageResponse {
+  messages: Message[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
 export const useChat = (matchId: string) => {
   const [state, setState] = useState<ChatState>({
     messages: [],
@@ -49,11 +59,8 @@ export const useChat = (matchId: string) => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       
-      const response = await axios.get(`/api/messages/${matchId}`, {
-        params: { page, limit: 50 }
-      });
-
-      const { messages, pagination } = response.data;
+      const response = await messagesAPI.getMessages(matchId);
+      const { messages, pagination } = response.data as MessageResponse;
       
       setState(prev => ({
         messages: page === 1 ? messages : [...prev.messages, ...messages],

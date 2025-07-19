@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const passport = require('passport');
+const net = require('net');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -16,18 +17,29 @@ const projectRoutes = require('./routes/projects');
 // Import socket handlers
 const { setupSocketHandlers } = require('./services/socket');
 
+// Import database connection
+const connectDB = require('./config/database');
+
+// Try to import MongoDB memory server - for development only
+let memoryServerSetup;
+try {
+  memoryServerSetup = require('../mongodb.config');
+} catch (err) {
+  console.log('MongoDB memory server not available, using regular connection');
+}
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL,
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     methods: ['GET', 'POST']
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
 app.use(express.json());
@@ -55,16 +67,76 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('MongoDB connection error:', err));
+// Function to check if a port is in use
+const isPortInUse = (port) => {
+  return new Promise((resolve) => {
+    const server = net.createServer()
+      .once('error', () => resolve(true))
+      .once('listening', () => {
+        server.close();
+        resolve(false);
+      })
+      .listen(port);
+  });
+};
 
-// Start server
-const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-}); 
+// Find an available port starting from the preferred one
+const findAvailablePort = async (preferredPort, maxAttempts = 10) => {
+  let port = preferredPort;
+  let attempts = 0;
+  
+  while (await isPortInUse(port) && attempts < maxAttempts) {
+    port++;
+    attempts++;
+    console.log(`Port ${preferredPort} is in use, trying port ${port}`);
+  }
+  
+  if (attempts >= maxAttempts) {
+    throw new Error('Could not find an available port after multiple attempts');
+  }
+  
+  return port;
+};
+
+// Main function to start everything
+const startServer = async () => {
+  try {
+    // Try using memory server in development
+    if (memoryServerSetup && process.env.NODE_ENV !== 'production') {
+      const uri = await memoryServerSetup.startMemoryServer();
+      process.env.MEMORY_SERVER_URI = uri;
+    }
+
+    // Connect to database
+    await connectDB();
+
+    // Find an available port
+    const preferredPort = parseInt(process.env.PORT || 5000, 10);
+    const port = await findAvailablePort(preferredPort);
+    
+    if (port !== preferredPort) {
+      console.log(`Port ${preferredPort} is in use, using port ${port} instead`);
+      process.env.PORT = port.toString();
+    }
+
+    // Start HTTP server
+    httpServer.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+};
+
+// Handle server shutdown
+process.on('SIGINT', async () => {
+  console.log('Shutting down server...');
+  if (memoryServerSetup) {
+    await memoryServerSetup.stopMemoryServer();
+  }
+  process.exit(0);
+});
+
+// Start the server
+startServer(); 
