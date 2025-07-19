@@ -22,25 +22,9 @@ const profileValidation = [
   body('socialLinks.portfolio').optional().isURL()
 ];
 
-const projectValidation = [
-  body('title').notEmpty().withMessage('Project title is required'),
-  body('description').optional().isString(),
-  body('techStack').optional().isArray(),
-  body('techStack.*').isString(),
-  body('repoUrl').optional().isURL(),
-  body('liveUrl').optional().isURL(),
-  body('images').optional().isArray(),
-  body('images.*').isURL()
-];
-
 // Profile routes
 router.get('/profile/:id', auth, userController.getProfile);
 router.put('/profile', auth, profileValidation, userController.updateProfile);
-
-// Project routes
-router.post('/projects', auth, projectValidation, userController.addProject);
-router.put('/projects/:projectId', auth, projectValidation, userController.updateProject);
-router.delete('/projects/:projectId', auth, userController.deleteProject);
 
 // Matching routes
 router.get('/matches/potential', auth, userController.getPotentialMatches);

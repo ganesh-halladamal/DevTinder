@@ -37,8 +37,13 @@ const setupSocketHandlers = (io) => {
         const { matchId, content, attachments } = data;
 
         // Verify the match exists and user is part of it
-        const match = await Match.findById(matchId);
-        if (!match || !match.users.includes(socket.userId)) {
+        const match = await Match.findOne({
+          _id: matchId,
+          users: socket.userId,
+          status: 'active'
+        });
+
+        if (!match) {
           throw new Error('Invalid match');
         }
 

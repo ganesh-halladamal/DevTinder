@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # DevTinder 🚀
 
 A developer-focused networking platform inspired by Tinder, designed to connect developers for collaboration, mentorship, and networking.
@@ -6,11 +5,25 @@ A developer-focused networking platform inspired by Tinder, designed to connect 
 ## Features
 
 - 👤 User Authentication & Profiles
-- 🔄 Tinder-style Swiping Interface
+  - Email/password signup
+  - OAuth integration (GitHub, Google)
+  - Customizable developer profiles
+  - Skills and project showcase
+
+- 🔄 Matching System
+  - Tinder-style swiping interface
+  - Smart matching based on skills and interests
+  - Project compatibility scoring
+
 - 💬 Real-time Chat
-- 🔍 Advanced Developer Search
-- 📂 Project Showcase
-- 👮‍♂️ Admin Panel & Moderation
+  - Instant messaging between matches
+  - Code snippet sharing
+  - Read receipts and typing indicators
+
+- 🔍 Advanced Search & Filters
+  - Filter by skills, interests, or location
+  - Project type matching
+  - Experience level compatibility
 
 ## Tech Stack
 
@@ -19,22 +32,49 @@ A developer-focused networking platform inspired by Tinder, designed to connect 
 - Express.js
 - MongoDB
 - Socket.IO for real-time communication
-- JWT for authentication
+- JWT & Passport.js for authentication
 
 ### Frontend
-- React
-- Material-UI & ShadCN
-- Context API/Redux for state management
+- React with TypeScript
+- Vite for build tooling
+- TailwindCSS & ShadCN UI
+- Zustand for state management
 - Socket.IO client
+
+## Project Structure
+
+```
+devtinder/
+├── backend/                # Express.js server
+│   ├── src/
+│   │   ├── config/        # Configuration files
+│   │   ├── controllers/   # Route controllers
+│   │   ├── middleware/    # Custom middleware
+│   │   ├── models/        # MongoDB models
+│   │   ├── routes/        # API routes
+│   │   ├── services/      # Business logic
+│   │   └── utils/         # Utility functions
+│   └── tests/             # Backend tests
+├── frontend/              # React application
+│   ├── src/
+│   │   ├── components/    # Reusable components
+│   │   ├── context/      # React Context
+│   │   ├── hooks/        # Custom hooks
+│   │   ├── pages/        # Page components
+│   │   ├── services/     # API services
+│   │   └── utils/        # Utility functions
+│   └── tests/            # Frontend tests
+└── README.md             # Project documentation
+```
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v18 or higher)
+- Node.js (v16.20.1 or higher)
 - MongoDB
 - npm or yarn
 
-### Installation
+### Installation & Setup
 
 1. Clone the repository
 ```bash
@@ -42,56 +82,62 @@ git clone https://github.com/ganesh-halladamal/DevTinder.git
 cd devtinder
 ```
 
-2. Install backend dependencies
+2. Backend Setup
 ```bash
 cd backend
 npm install
+# Create .env file with required environment variables
+npm run dev
 ```
 
-3. Install frontend dependencies
+Required backend environment variables (.env):
+```env
+PORT=5000
+NODE_ENV=development
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=7d
+FRONTEND_URL=http://localhost:3000
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+```
+
+3. Frontend Setup
 ```bash
-cd ../frontend
+cd frontend
 npm install
+# Create .env file with required environment variables
+npm run dev
 ```
 
-4. Set up environment variables
-- Create `.env` files in both backend and frontend directories
-- Follow the `.env.example` templates
+Required frontend environment variables (.env):
+```env
+VITE_API_URL=http://localhost:5000/api
+VITE_SOCKET_URL=http://localhost:5000
+VITE_GITHUB_CLIENT_ID=your_github_client_id
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+```
 
-5. Start the development servers
+### Running the Application
+
+1. Start the backend server:
 ```bash
-# Backend (from backend directory)
-npm run dev
-
-# Frontend (from frontend directory)
+cd backend
 npm run dev
 ```
 
-## Project Structure
+2. Start the frontend development server:
+```bash
+cd frontend
+npm run dev
+```
 
-```
-devtinder/
-├── backend/              # Express.js server
-│   ├── src/
-│   │   ├── config/      # Configuration files
-│   │   ├── controllers/ # Route controllers
-│   │   ├── middleware/  # Custom middleware
-│   │   ├── models/      # MongoDB models
-│   │   ├── routes/      # API routes
-│   │   ├── services/    # Business logic
-│   │   └── utils/       # Utility functions
-│   └── tests/           # Backend tests
-├── frontend/            # React application
-│   ├── src/
-│   │   ├── components/ # Reusable components
-│   │   ├── context/    # React Context
-│   │   ├── hooks/      # Custom hooks
-│   │   ├── pages/      # Page components
-│   │   ├── services/   # API services
-│   │   └── utils/      # Utility functions
-│   └── tests/          # Frontend tests
-└── README.md           # Project documentation
-```
+The application will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
+- API Documentation: http://localhost:5000/api-docs
 
 ## Contributing
 
