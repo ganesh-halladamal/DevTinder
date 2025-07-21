@@ -17,19 +17,29 @@ export const useTheme = () => {
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    // Check local storage or system preference
+    // Check local storage first
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light' || savedTheme === 'dark') {
       return savedTheme;
     }
+    // Check system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
-    // Update document class and local storage when theme changes
+    // Apply theme to document
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
     localStorage.setItem('theme', theme);
+    
+    // Add dark mode styles
+    if (theme === 'dark') {
+      document.documentElement.style.backgroundColor = '#1a1a1a';
+      document.documentElement.style.color = '#ffffff';
+    } else {
+      document.documentElement.style.backgroundColor = '#ffffff';
+      document.documentElement.style.color = '#000000';
+    }
   }, [theme]);
 
   const toggleTheme = () => {
@@ -41,4 +51,4 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
     </ThemeContext.Provider>
   );
-}; 
+};

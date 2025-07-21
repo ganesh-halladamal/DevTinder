@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 
 interface User {
-  id: string;
+  _id: string; // MongoDB ID
+  id?: string; // Optional legacy ID
   email: string;
   name: string;
   avatar?: string;
@@ -26,7 +27,7 @@ interface AuthContextType {
   loginWithGoogle: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -48,7 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token) {
         try {
           const response = await authAPI.getCurrentUser();
-          setUser(response.data.user as User);
+          const userData = response.data.user as User;
+          setUser(userData);
         } catch (error) {
           console.error('Auth check failed:', error);
           localStorage.removeItem('token');
@@ -67,26 +69,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('token', token);
       setUser(user);
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      throw error;
+      if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Failed to login. Please check your credentials and try again.');
+      }
     }
   };
 
   const register = async (email: string, password: string, name: string) => {
     try {
+      console.log('Registering user:', { email, name }); // Don't log password
       const response = await authAPI.register({
         email,
         password,
         name
       });
+      console.log('Registration response:', response.data);
+      
+      // Type check the response data
       const { token, user } = response.data as AuthResponse;
       localStorage.setItem('token', token);
       setUser(user);
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration failed:', error);
-      throw error;
+      if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Failed to register. Please try again later.');
+      }
     }
   };
 

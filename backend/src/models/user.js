@@ -64,6 +64,41 @@ const userSchema = new mongoose.Schema({
     twitter: String,
     portfolio: String
   },
+  settings: {
+    emailNotifications: {
+      type: Boolean,
+      default: true
+    },
+    pushNotifications: {
+      type: Boolean,
+      default: false
+    },
+    showProfile: {
+      type: Boolean,
+      default: true
+    },
+    distance: {
+      type: Number,
+      default: 75,
+      min: 5,
+      max: 100
+    },
+    experience: {
+      type: String,
+      enum: ['beginner', 'intermediate', 'senior'],
+      default: 'senior'
+    },
+    availability: {
+      type: String,
+      enum: ['full-time', 'part-time', 'freelance', 'weekends'],
+      default: 'full-time'
+    },
+    theme: {
+      type: String,
+      enum: ['light', 'dark'],
+      default: 'light'
+    }
+  },
   matches: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -111,6 +146,10 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 // Get public profile method
 userSchema.methods.getPublicProfile = function() {
   const userObject = this.toObject();
+  
+  // Ensure _id is explicitly present (MongoDB already includes it, but this is for clarity)
+  userObject._id = userObject._id || this._id;
+  
   delete userObject.password;
   delete userObject.github;
   delete userObject.google;

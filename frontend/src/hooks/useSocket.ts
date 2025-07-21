@@ -1,15 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from './useAuth';
 import socketService from '../services/socket';
 
-interface UseSocketOptions {
-  onConnect?: () => void;
-  onDisconnect?: () => void;
-  onError?: (error: Error) => void;
-}
-
-export const useSocket = (options: UseSocketOptions = {}) => {
+export const useSocket = (): Socket | null => {
   const { user } = useAuth();
   const socketRef = useRef<Socket | null>(null);
 
@@ -21,62 +15,21 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       try {
         // Connect to socket
         socketRef.current = socketService.connect(token);
-
-        // Set up event listeners
-        socketRef.current.on('connect', () => {
-          console.log('Socket connected');
-          options.onConnect?.();
-        });
-
-        socketRef.current.on('disconnect', () => {
-          console.log('Socket disconnected');
-          options.onDisconnect?.();
-        });
-
-        socketRef.current.on('connect_error', (error) => {
-          console.error('Socket connection error:', error);
-          options.onError?.(error);
-        });
       } catch (error) {
         console.error('Socket initialization error:', error);
-        options.onError?.(error as Error);
       }
+    } else if (socketRef.current) {
+      socketService.disconnect();
+      socketRef.current = null;
     }
 
     return () => {
       if (socketRef.current) {
-        socketRef.current.disconnect();
+        socketService.disconnect();
         socketRef.current = null;
       }
     };
-  }, [user, options]);
+  }, [user]);
 
-  return {
-    socket: socketRef.current,
-    isConnected: socketRef.current?.connected ?? false,
-    
-    // Message handling
-    sendMessage: (matchId: string, content: string, attachments: any[] = []) => {
-      socketService.sendMessage(matchId, content, attachments);
-    },
-
-    // Typing indicators
-    sendTypingStart: (matchId: string) => {
-      socketService.sendTypingStart(matchId);
-    },
-
-    sendTypingStop: (matchId: string) => {
-      socketService.sendTypingStop(matchId);
-    },
-
-    // Read receipts
-    markMessageAsRead: (messageId: string) => {
-      socketService.markMessageAsRead(messageId);
-    },
-
-    // Match notifications
-    sendMatchNotification: (matchedUserId: string) => {
-      socketService.sendMatchNotification(matchedUserId);
-    }
-  };
+  return socketRef.current;
 }; 

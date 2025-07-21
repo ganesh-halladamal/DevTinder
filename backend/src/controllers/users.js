@@ -4,16 +4,24 @@ const User = require('../models/user');
 // Get user profile
 exports.getProfile = async (req, res) => {
   try {
+    console.log(`Looking for user with ID: ${req.params.id}`);
+    
     const user = await User.findById(req.params.id)
       .select('-password -github -google');
     
     if (!user) {
+      console.log(`User not found with ID: ${req.params.id}`);
       return res.status(404).json({
         message: 'User not found'
       });
     }
 
-    res.json({ user });
+    // Ensure ID is properly included
+    const userProfile = user.toObject();
+    userProfile._id = user._id;
+
+    console.log(`User found: ${user.name}`);
+    res.json({ user: userProfile });
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({

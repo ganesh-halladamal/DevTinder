@@ -128,8 +128,10 @@ exports.getCurrentUser = async (req, res) => {
       });
     }
 
+    // Explicitly include _id in the response
+    const userProfile = user.getPublicProfile();
     res.json({
-      user: user.getPublicProfile()
+      user: userProfile
     });
   } catch (error) {
     console.error('Get current user error:', error);

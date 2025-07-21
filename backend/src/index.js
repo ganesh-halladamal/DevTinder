@@ -7,12 +7,24 @@ const { Server } = require('socket.io');
 const passport = require('passport');
 const net = require('net');
 
+// Set default environment variables if not provided
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'devtinder_jwt_secret_key';
+  console.log('JWT_SECRET:', process.env.JWT_SECRET);
+}
+
+if (!process.env.JWT_EXPIRES_IN) {
+  process.env.JWT_EXPIRES_IN = '30d';
+  console.log('JWT_EXPIRES_IN:', process.env.JWT_EXPIRES_IN);
+}
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const matchRoutes = require('./routes/matches');
 const messageRoutes = require('./routes/messages');
 const projectRoutes = require('./routes/projects');
+const settingsRoutes = require('./routes/settings');
 
 // Import socket handlers
 const { setupSocketHandlers } = require('./services/socket');
@@ -32,18 +44,40 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST']
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:3001'],
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
-// Middleware
+// Middleware - Allow multiple origins for development
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:3001'
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
 app.use(passport.initialize());
+
+// Simple test route
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working!' });
+});
 
 // Initialize passport config
 require('./config/passport');
@@ -54,13 +88,15 @@ app.use('/api/users', userRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Socket.io setup
 setupSocketHandlers(io);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Error occurred:', err);
+  console.error('Stack trace:', err.stack);
   res.status(err.status || 500).json({
     message: err.message || 'Internal Server Error',
     error: process.env.NODE_ENV === 'development' ? err : {}
