@@ -107,12 +107,28 @@ const setupSocketHandlers = (io) => {
     });
 
     // Handle match notifications
-    socket.on('new_match', (matchData) => {
-      const { matchedUserId } = matchData;
-      if (activeUsers.has(matchedUserId)) {
-        io.to(activeUsers.get(matchedUserId)).emit('match_notification', {
-          matcherId: socket.userId
+    socket.on('new_match', async (matchData) => {
+      try {
+        const { matchId } = matchData;
+        const match = await Match.findById(matchId)
+          .populate('users', '-password -github -google');
+
+        if (!match) return;
+
+        // Emit to both users in the match
+        match.users.forEach(user => {
+          if (activeUsers.has(user._id.toString())) {
+            io.to(activeUsers.get(user._id.toString())).emit('new_match', {
+              matchId: match._id,
+              users: match.users.filter(u => u._id.toString() !== user._id.toString()),
+              matchScore: match.matchScore,
+              commonInterests: match.commonInterests,
+              commonSkills: match.commonSkills
+            });
+          }
         });
+      } catch (error) {
+        console.error('Match notification error:', error);
       }
     });
 

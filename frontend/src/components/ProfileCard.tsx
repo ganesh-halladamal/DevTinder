@@ -1,6 +1,9 @@
 import React from 'react';
 import { motion, PanInfo } from 'framer-motion';
 
+// Import API URL from the api service
+import { API_URL } from '../services/api';
+
 interface Skill {
   name: string;
   proficiency: 'beginner' | 'intermediate' | 'advanced' | 'expert';
@@ -38,6 +41,21 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onSwipe }) => {
     }
   };
 
+  // Function to format avatar URL correctly
+  const formatAvatarUrl = (avatarPath?: string) => {
+    if (!avatarPath) return undefined;
+    
+    // If it's already an absolute URL, return it as is
+    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
+      return avatarPath;
+    }
+    
+    // If it's a relative path, prepend the API base URL
+    // Remove the first slash if it exists to avoid double slashes
+    const path = avatarPath.startsWith('/') ? avatarPath.substring(1) : avatarPath;
+    return `${API_URL.replace('/api', '')}/${path}`;
+  };
+
   const getProficiencyColor = (proficiency: Skill['proficiency']) => {
     switch (proficiency) {
       case 'beginner':
@@ -65,7 +83,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onSwipe }) => {
       <div className="relative h-48">
         {user.avatar ? (
           <img
-            src={user.avatar}
+            src={formatAvatarUrl(user.avatar)}
             alt={user.name}
             className="w-full h-full object-cover"
           />

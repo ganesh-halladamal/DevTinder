@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { usersAPI } from '../services/api';
+import { usersAPI, matchesAPI } from '../services/api';
 import { Heart, X, MapPin, Briefcase } from 'lucide-react';
 
 interface User {
@@ -22,6 +22,8 @@ const Home: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [animating, setAnimating] = useState(false);
+  const [isMatch, setIsMatch] = useState(false);
+  const [matchedUser, setMatchedUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -45,12 +47,46 @@ const Home: React.FC = () => {
     if (animating || currentIndex >= users.length) return;
     
     setAnimating(true);
-    console.log(`Swiped ${direction} on user ${users[currentIndex]?.name}`);
+    const currentUser = users[currentIndex];
+    console.log(`Swiped ${direction} on user ${currentUser?.name}`);
     
-    setTimeout(() => {
-      setCurrentIndex(prev => prev + 1);
+    try {
+      if (direction === 'right') {
+        // Like user and check for match
+        const response = await usersAPI.likeUser(currentUser._id);
+        const isMatch = response.data.isMatch;
+        
+        if (isMatch) {
+          console.log("It's a match!");
+          setIsMatch(true);
+          setMatchedUser(currentUser);
+          
+          // Create match in the database
+          await matchesAPI.createMatch(currentUser._id);
+          
+          // Show match notification for 3 seconds
+          setTimeout(() => {
+            setIsMatch(false);
+            setMatchedUser(null);
+            setCurrentIndex(prev => prev + 1);
+            setAnimating(false);
+          }, 3000);
+          return;
+        }
+      } else {
+        // Dislike user
+        await usersAPI.dislikeUser(currentUser._id);
+      }
+      
+      // Move to next user
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+        setAnimating(false);
+      }, 400);
+    } catch (error) {
+      console.error('Error handling swipe:', error);
       setAnimating(false);
-    }, 400);
+    }
   };
 
   if (isLoading) {
@@ -99,6 +135,33 @@ const Home: React.FC = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-md">
+      {isMatch && matchedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full text-center animate-fade-in">
+            <div className="mb-4">
+              <Heart className="h-16 w-16 text-pink-500 mx-auto animate-bounce" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">It's a Match!</h2>
+            <p className="text-gray-600 mb-4">
+              You and {matchedUser.name} have liked each other.
+            </p>
+            <div className="flex justify-center space-x-4 mb-4">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-purple-500">
+                <img src={user?.avatar} alt="You" className="w-full h-full object-cover" />
+              </div>
+              <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-pink-500">
+                <img src={matchedUser.avatar} alt={matchedUser.name} className="w-full h-full object-cover" />
+              </div>
+            </div>
+            <Link to="/matches">
+              <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all">
+                Go to Matches
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
           Find Your Dev Match

@@ -15,21 +15,26 @@ class SocketService {
 
   connect(token: string): Socket {
     if (!this.socket) {
-      this.socket = io(import.meta.env.VITE_SOCKET_URL, {
+      // Get socket URL from environment or default to backend URL
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      
+      console.log('Connecting to socket at:', socketUrl);
+      
+      this.socket = io(socketUrl, {
         auth: { token },
         transports: ['websocket'],
         autoConnect: true
       });
 
       this.socket.on('connect', () => {
-        console.log('Socket connected');
+        console.log('Socket connected successfully');
       });
 
-      this.socket.on('connect_error', (error) => {
+      this.socket.on('connect_error', (error: Error) => {
         console.error('Socket connection error:', error);
       });
 
-      this.socket.on('disconnect', (reason) => {
+      this.socket.on('disconnect', (reason: string) => {
         console.log('Socket disconnected:', reason);
       });
     }

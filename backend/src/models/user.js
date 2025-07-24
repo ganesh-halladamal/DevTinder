@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema({
   bio: String,
   avatar: String,
   location: String,
+  jobRole: {
+    type: String,
+    default: 'Developer'
+  },
   skills: [skillSchema],
   projects: [projectSchema],
   interests: [String],

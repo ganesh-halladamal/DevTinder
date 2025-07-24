@@ -52,12 +52,12 @@
     --secondary-foreground: 210 40% 98%;
  
     --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted-foreground: 215 20.2% 75.1%;
  
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
  
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 210 40% 98%;
  
     --border: 217.2 32.6% 17.5%;
@@ -72,5 +72,258 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* Custom responsive styles */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-shadow {
+    text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .dark .text-shadow {
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  
+  /* Premium glass effect */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md border border-white/20;
+  }
+  
+  .dark .glass {
+    @apply bg-background/80 backdrop-blur-md border border-white/10;
+  }
+  
+  /* Premium button hover effects */
+  .hover-scale {
+    @apply transition-transform duration-300 hover:scale-105;
+  }
+  
+  /* Premium gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-pink-500;
+  }
+}
+
+/* Responsive padding adjustments */
+@media (max-width: 640px) {
+  .container {
+    @apply px-4;
+  }
+}
+
+/* Improved touch targets for mobile */
+@media (max-width: 768px) {
+  button, 
+  a,
+  input[type="button"],
+  input[type="submit"] {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .clickable-card {
+    @apply cursor-pointer transition-transform active:scale-[0.98];
+  }
+}
+
+/* Responsive typography */
+html {
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+} 
+
+/* Premium navbar styles */
+nav {
+  transition: all 0.3s ease;
+}
+
+.dark nav {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Navbar button hover effects */
+nav button {
+  position: relative;
+  overflow: hidden;
+}
+
+nav button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background-color: currentColor;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.4s ease, opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+nav button:hover::after {
+  transform: translate(-50%, -50%) scale(2);
+  opacity: 0.05;
+}
+
+/* Theme toggle animations */
+nav button[aria-label="Toggle theme"] {
+  overflow: hidden;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+nav button[aria-label="Toggle theme"]:hover {
+  transform: rotate(15deg);
+}
+
+nav button[aria-label="Toggle theme"] svg {
+  transition: transform 0.3s ease;
+}
+
+nav button[aria-label="Toggle theme"]:active svg {
+  transform: scale(0.8);
+}
+
+/* Premium footer styles */
+footer {
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark footer {
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Premium link hover effect */
+a.premium-link {
+  position: relative;
+  text-decoration: none;
+}
+
+a.premium-link::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  bottom: -2px;
+  left: 0;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+a.premium-link:hover::after {
+  transform: scaleX(1);
+} 
+
+/* Mobile menu animation */
+.animate-accordion-down {
+  animation: accordionDown 0.3s ease-out forwards;
+}
+
+@keyframes accordionDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 
+
+/* Smooth theme transitions */
+.color-theme-in-transition,
+.color-theme-in-transition *,
+.color-theme-in-transition *:before,
+.color-theme-in-transition *:after {
+  transition: all 0.5s ease-out !important;
+  transition-delay: 0 !important;
+}
+
+/* Smooth theme toggle animation */
+@keyframes themeToggle {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+} 
+
+/* Animations for matching */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-bounce {
+  animation: bounce 1s ease infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Card swipe animations */
+.swipe-right {
+  transform: translateX(100%) rotate(10deg);
+  transition: transform 0.4s ease-out;
+  opacity: 0;
+}
+
+.swipe-left {
+  transform: translateX(-100%) rotate(-10deg);
+  transition: transform 0.4s ease-out;
+  opacity: 0;
 } 

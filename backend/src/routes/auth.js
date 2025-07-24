@@ -12,7 +12,17 @@ const registerValidation = [
   body('password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
-  body('name').notEmpty().withMessage('Name is required')
+  body('name').notEmpty().withMessage('Name is required'),
+  body('avatar').optional().isString(),
+  body('projects').optional().isArray(),
+  body('projects.*.title').optional().isString().notEmpty().withMessage('Project title cannot be empty'),
+  body('projects.*.description').optional().isString(),
+  body('projects.*.techStack').optional().isArray(),
+  body('projects.*.techStack.*').optional().isString(),
+  body('projects.*.repoUrl').optional({ nullable: true }).isString(),
+  body('projects.*.liveUrl').optional({ nullable: true }).isString(),
+  body('projects.*.images').optional().isArray(),
+  body('projects.*.images.*').optional().isString()
 ];
 
 const loginValidation = [

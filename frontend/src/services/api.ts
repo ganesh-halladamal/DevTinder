@@ -98,13 +98,19 @@ const usersAPI = {
       return Promise.reject(new Error('User ID is required'));
     }
     console.log(`Getting user profile for ID: ${id}`);
-    return api.get(`/users/${id}`);
+    return api.get(`/users/profile/${id}`);
   },
   updateProfile: async (userData: any) => {
     return api.put('/users/profile', userData);
   },
   getPotentialMatches: async () => {
     return api.get('/users/matches/potential');
+  },
+  likeUser: async (userId: string) => {
+    return api.post(`/users/matches/like/${userId}`);
+  },
+  dislikeUser: async (userId: string) => {
+    return api.post(`/users/matches/dislike/${userId}`);
   }
 };
 
@@ -112,6 +118,9 @@ const usersAPI = {
 const matchesAPI = {
   getMatches: async () => {
     return api.get('/matches');
+  },
+  getMatchDetails: async (matchId: string) => {
+    return api.get(`/matches/${matchId}`);
   },
   createMatch: async (userId: string) => {
     return api.post('/matches', { userId });
@@ -128,6 +137,10 @@ const messagesAPI = {
   },
   sendMessage: async (matchId: string, content: string, attachments: any[] = []) => {
     return api.post(`/messages/${matchId}`, { content, attachments });
+  },
+  // Add markAsRead function
+  markAsRead: async (matchId: string) => {
+    return api.post(`/messages/${matchId}/read`);
   }
 };
 
@@ -160,5 +173,5 @@ const settingsAPI = {
   }
 };
 
-export { authAPI, usersAPI, matchesAPI, messagesAPI, projectsAPI, settingsAPI };
+export { API_URL, authAPI, usersAPI, matchesAPI, messagesAPI, projectsAPI, settingsAPI };
 export default api;

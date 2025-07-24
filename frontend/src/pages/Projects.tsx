@@ -1,40 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { projectsAPI, usersAPI } from '../services/api';
+import { Plus, Github, ExternalLink, Code } from 'lucide-react';
 
 interface Project {
-  id: string;
+  _id: string;
   title: string;
   description: string;
-  technologies: string[];
-  owner: {
-    id: string;
-    name: string;
-    avatar: string;
-  };
-  contributors: number;
-  isOpen: boolean;
-  githubUrl?: string;
-  demoUrl?: string;
-  createdAt: string;
+  techStack: string[];
+  repoUrl?: string;
+  liveUrl?: string;
+  images?: string[];
 }
 
 const Projects: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadProjects();
   }, []);
 
   const loadProjects = async () => {
+    if (!user) return;
+
     try {
       setIsLoading(true);
-      // For now, use the user's projects from their profile
-      // In a real implementation, this would fetch all public projects
-      setProjects([]);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Failed to load projects:', error);
+      setError(null);
+      
+      console.log('User object in loadProjects:', user);
+      
+      // Check for both _id and id properties
+      const userId = user._id || user.id;
+      
+      if (!userId) {
+        console.error('No user ID found in user object:', user);
+        setError('User ID not found. Please log out and log in again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('Using user ID for projects fetch:', userId);
+      
+      // Get user profile to access projects
+      const response = await usersAPI.getUserById(userId);
+      
+      // Type the response properly
+      type ApiResponse = { data: { user: any } };
+      const typedResponse = response as ApiResponse;
+      const userData = typedResponse.data.user;
+      
+      setProjects(userData.projects || []);
+    } catch (err: any) {
+      console.error('Failed to load projects:', err);
+      setError(err.message || 'Failed to load projects');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -42,82 +66,109 @@ const Projects: React.FC = () => {
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <div className="flex justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-4xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+            <div className="space-y-4">
+              <div className="h-32 bg-gray-100 rounded"></div>
+              <div className="h-32 bg-gray-100 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+          <h2 className="text-xl font-semibold text-red-700 mb-2">Error Loading Projects</h2>
+          <p className="text-red-600">{error}</p>
+          <button 
+            onClick={loadProjects}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Projects</h1>
-        <Link
-          to="/projects/new"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md"
-        >
-          Add Project
-        </Link>
-      </div>
+    <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">My Projects</h1>
+          <Link 
+            to="/profile/edit" 
+            state={{ activeTab: 'projects' }}
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            <Plus size={18} />
+            Add Project
+          </Link>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {projects.map(project => (
-          <div key={project.id} className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center mb-4">
-              <img
-                src={project.owner.avatar}
-                alt={project.owner.name}
-                className="w-10 h-10 rounded-full mr-3"
-              />
-              <div>
-                <p className="text-sm font-medium">{project.owner.name}</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(project.createdAt).toLocaleDateString()}
-                </p>
+        {projects.length > 0 ? (
+          <div className="space-y-6">
+            {projects.map((project) => (
+              <div key={project._id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <h2 className="text-2xl font-semibold mb-2">{project.title}</h2>
+                <p className="text-gray-600 mb-4">{project.description}</p>
+                
+                {project.techStack && project.techStack.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {project.techStack.map((tech, i) => (
+                      <span key={i} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex gap-4">
+                  {project.repoUrl && (
+                    <a 
+                      href={project.repoUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors"
+                    >
+                      <Github size={18} />
+                      Repository
+                    </a>
+                  )}
+                  
+                  {project.liveUrl && (
+                    <a 
+                      href={project.liveUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors"
+                    >
+                      <ExternalLink size={18} />
+                      Live Demo
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
-
-            <h3 className="text-lg font-semibold mb-2">{project.title}</h3>
-            <p className="text-gray-600 text-sm mb-4">{project.description}</p>
-
-            <div className="flex flex-wrap gap-1 mb-4">
-              {project.technologies.map(tech => (
-                <span key={tech} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                  {tech}
-                </span>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-              <span>{project.contributors} contributors</span>
-              {project.isOpen && (
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                  Open Source
-                </span>
-              )}
-            </div>
-
-            <div className="flex space-x-2">
-              <Link
-                to={`/projects/${project.id}`}
-                className="flex-1 text-center bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded text-sm"
-              >
-                View Details
-              </Link>
-              {project.githubUrl && (
-                <a
-                  href={project.githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  GitHub
-                </a>
-              )}
-            </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          <div className="text-center py-16 bg-gray-50 rounded-lg">
+            <Code className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+            <h2 className="text-2xl font-medium text-gray-700 mb-2">No Projects Yet</h2>
+            <p className="text-gray-500 mb-6">Showcase your work by adding projects to your profile</p>
+            <Link 
+              to="/profile/edit" 
+              className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors"
+            >
+              Add Your First Project
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

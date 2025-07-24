@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import socketService from '../services/socket';
 
 interface User {
   _id: string; // MongoDB ID
@@ -21,7 +22,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name: string, avatar?: string, projects?: any[]) => Promise<void>;
   logout: () => void;
   loginWithGithub: () => void;
   loginWithGoogle: () => void;
@@ -49,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token) {
         try {
           const response = await authAPI.getCurrentUser();
-          const userData = response.data.user as User;
+          const userData = (response.data as { user: User }).user;
           setUser(userData);
         } catch (error) {
           console.error('Auth check failed:', error);
@@ -68,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { token, user } = response.data as AuthResponse;
       localStorage.setItem('token', token);
       setUser(user);
+      socketService.connect(token);
       navigate('/');
     } catch (error: any) {
       console.error('Login failed:', error);
@@ -79,14 +81,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, name: string) => {
+  const register = async (email: string, password: string, name: string, avatar?: string, projects?: any[]) => {
     try {
       console.log('Registering user:', { email, name }); // Don't log password
-      const response = await authAPI.register({
+      const userData = {
         email,
         password,
-        name
-      });
+        name,
+        avatar,
+        projects
+      };
+      
+      const response = await authAPI.register(userData);
       console.log('Registration response:', response.data);
       
       // Type check the response data
@@ -107,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    socketService.disconnect();
     navigate('/login');
   };
 

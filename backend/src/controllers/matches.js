@@ -82,6 +82,18 @@ exports.createMatch = async (req, res) => {
     // Populate match details
     await match.populate('users', '-password -github -google');
 
+    // Emit socket event for new match
+    const io = req.app.get('socketio');
+    if (io) {
+      io.emit('new_match', {
+        matchId: match._id,
+        users: match.users,
+        matchScore: match.matchScore,
+        commonInterests: match.commonInterests,
+        commonSkills: match.commonSkills
+      });
+    }
+
     res.status(201).json({ match });
   } catch (error) {
     console.error('Create match error:', error);

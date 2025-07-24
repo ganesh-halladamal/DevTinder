@@ -7,7 +7,8 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "seed-matches": "node src/utils/seedDatabase.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -19,10 +20,12 @@
     "mime-db": "^1.54.0",
     "mime-types": "^3.0.1",
     "mongoose": "^8.16.4",
+    "multer": "^2.0.2",
     "passport": "^0.6.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
+    "sharp": "^0.34.3",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
