@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { usersAPI, matchesAPI } from '../services/api';
 import { Heart, X, MapPin, Briefcase } from 'lucide-react';
+import { formatAvatarUrl } from '../utils/imageUtils';
 
 interface User {
   _id: string;
@@ -89,6 +90,20 @@ const Home: React.FC = () => {
     }
   };
 
+  // Function to format avatar URL correctly
+  const formatAvatarUrl = (avatarPath?: string) => {
+    if (!avatarPath) return '/default-avatar.png';
+    
+    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
+      return avatarPath;
+    }
+    
+    // Remove any leading slashes and construct the full URL
+    const path = avatarPath.startsWith('/') ? avatarPath.substring(1) : avatarPath;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    return `${baseUrl}/${path}`;
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-md">
@@ -147,10 +162,10 @@ const Home: React.FC = () => {
             </p>
             <div className="flex justify-center space-x-4 mb-4">
               <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-purple-500">
-                <img src={user?.avatar} alt="You" className="w-full h-full object-cover" />
+                <img src={formatAvatarUrl(user?.avatar)} alt="You" className="w-full h-full object-cover" />
               </div>
               <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-pink-500">
-                <img src={matchedUser.avatar} alt={matchedUser.name} className="w-full h-full object-cover" />
+                <img src={formatAvatarUrl(matchedUser.avatar)} alt={matchedUser.name} className="w-full h-full object-cover" />
               </div>
             </div>
             <Link to="/matches">
@@ -174,7 +189,7 @@ const Home: React.FC = () => {
       <div className="bg-white rounded-xl shadow-xl overflow-hidden transform transition-all duration-300 hover:shadow-2xl">
         <div className="relative">
           <img 
-            src={currentUser.avatar} 
+            src={formatAvatarUrl(currentUser.avatar)} 
             alt={currentUser.name}
             className="w-full h-80 object-cover"
           />

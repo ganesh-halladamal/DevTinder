@@ -93,56 +93,60 @@ const Settings: React.FC = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-2xl">
-      <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl overflow-hidden">
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
-          <h1 className="text-3xl font-bold">Settings</h1>
+          <h1 className="text-3xl font-bold text-white">Settings</h1>
           <p className="text-purple-100 mt-1">Manage your preferences and account</p>
         </div>
 
         <div className="p-6 space-y-6">
           {message && (
-            <div className={`p-4 rounded-lg ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            <div className={`p-4 rounded-lg ${
+              message.includes('success')
+                ? 'bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-300'
+                : 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300'
+            }`}>
               {message}
             </div>
           )}
 
           {/* Notifications */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-              <Bell className="h-5 w-5 mr-2 text-purple-600" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center">
+              <Bell className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
               Notifications
             </h3>
             
-            <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
-              <span className="font-medium">Email Notifications</span>
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700 rounded-lg cursor-pointer">
+              <span className="font-medium text-gray-800 dark:text-gray-200">Email Notifications</span>
               <input
                 type="checkbox"
                 checked={settings.emailNotifications}
                 onChange={(e) => handleSettingChange('emailNotifications', e.target.checked)}
-                className="h-5 w-5 text-purple-600 rounded"
+                className="h-5 w-5 text-purple-600 dark:text-purple-400 rounded"
               />
             </label>
 
-            <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
-              <span className="font-medium">Push Notifications</span>
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700 rounded-lg cursor-pointer">
+              <span className="font-medium text-gray-800 dark:text-gray-200">Push Notifications</span>
               <input
                 type="checkbox"
                 checked={settings.pushNotifications}
                 onChange={(e) => handleSettingChange('pushNotifications', e.target.checked)}
-                className="h-5 w-5 text-purple-600 rounded"
+                className="h-5 w-5 text-purple-600 dark:text-purple-400 rounded"
               />
             </label>
           </div>
 
           {/* Discovery Preferences */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-              <Shield className="h-5 w-5 mr-2 text-purple-600" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center">
+              <Shield className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
               Discovery Preferences
             </h3>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Distance (km)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maximum Distance (km)</label>
               <div className="flex items-center gap-4">
                 <input
                   type="range"
@@ -150,18 +154,18 @@ const Settings: React.FC = () => {
                   max="100"
                   value={settings.distance}
                   onChange={(e) => handleSettingChange('distance', parseInt(e.target.value))}
-                  className="flex-1"
+                  className="flex-1 accent-purple-600 dark:accent-purple-400"
                 />
-                <span className="text-sm font-medium text-gray-600">{settings.distance} km</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{settings.distance} km</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Experience Level</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience Level</label>
               <select
                 value={settings.experience}
                 onChange={(e) => handleSettingChange('experience', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
               >
                 {experienceLevels.map(level => (
                   <option key={level} value={level} className="capitalize">
@@ -172,11 +176,11 @@ const Settings: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Availability</label>
               <select
                 value={settings.availability}
                 onChange={(e) => handleSettingChange('availability', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
               >
                 {availabilityOptions.map(option => (
                   <option key={option} value={option} className="capitalize">
@@ -189,13 +193,15 @@ const Settings: React.FC = () => {
 
           {/* Theme */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-              {theme === 'dark' ? <Moon className="h-5 w-5 mr-2 text-purple-600" /> : <Sun className="h-5 w-5 mr-2 text-purple-600" />}
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center">
+              {theme === 'dark' ? 
+                <Moon className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" /> : 
+                <Sun className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />}
               Theme
             </h3>
 
-            <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
-              <span className="font-medium">Dark Mode</span>
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700 rounded-lg cursor-pointer">
+              <span className="font-medium text-gray-800 dark:text-gray-200">Dark Mode</span>
               <button
                 onClick={toggleTheme}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -213,24 +219,24 @@ const Settings: React.FC = () => {
 
           {/* Privacy */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-              <User className="h-5 w-5 mr-2 text-purple-600" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center">
+              <User className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
               Privacy
             </h3>
 
-            <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
-              <span className="font-medium">Show Profile to Others</span>
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700 rounded-lg cursor-pointer">
+              <span className="font-medium text-gray-800 dark:text-gray-200">Show Profile to Others</span>
               <input
                 type="checkbox"
                 checked={settings.showProfile}
                 onChange={(e) => handleSettingChange('showProfile', e.target.checked)}
-                className="h-5 w-5 text-purple-600 rounded"
+                className="h-5 w-5 text-purple-600 dark:text-purple-400 rounded"
               />
             </label>
           </div>
 
           {/* Actions */}
-          <div className="space-y-4 pt-6 border-t border-gray-200">
+          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={handleSaveSettings}
               disabled={isSaving || isLoading}
@@ -241,7 +247,7 @@ const Settings: React.FC = () => {
 
             <button
               onClick={() => logout()}
-              className="w-full bg-red-50 text-red-600 py-3 px-4 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center"
+              className="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-3 px-4 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out

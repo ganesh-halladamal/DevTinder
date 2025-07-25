@@ -1,20 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { matchesAPI, API_URL } from '../services/api';
+import { matchesAPI } from '../services/api';
 import socketService from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
-
-// Function to format avatar URL correctly
-const formatAvatarUrl = (avatarPath?: string) => {
-  if (!avatarPath) return '/default-avatar.png';
-  
-  if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
-    return avatarPath;
-  }
-  
-  const path = avatarPath.startsWith('/') ? avatarPath.substring(1) : avatarPath;
-  return `${API_URL.replace('/api', '')}/${path}`;
-};
+import { formatAvatarUrl } from '../services/imageService';
 
 interface MatchUser {
   _id: string;
@@ -150,16 +139,16 @@ const Matches: React.FC = () => {
   
   if (!matches || !matches.length) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 max-w-md">
-          <div className="text-6xl mb-4">💔</div>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] text-center px-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-10 max-w-md w-full mx-auto">
+          <div className="text-7xl mb-6">💔</div>
           <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">No matches yet</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-8">
             Start swiping to find your perfect dev match!
           </p>
           <Link 
             to="/" 
-            className="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg font-medium transition-colors"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white py-4 px-8 rounded-xl font-medium transition-colors inline-block"
           >
             Find Matches
           </Link>

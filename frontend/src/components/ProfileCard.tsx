@@ -1,8 +1,7 @@
 import React from 'react';
 import { motion, PanInfo } from 'framer-motion';
 
-// Import API URL from the api service
-import { API_URL } from '../services/api';
+// No need for BASE_URL import as we're using hardcoded URL for debugging
 
 interface Skill {
   name: string;
@@ -47,13 +46,21 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onSwipe }) => {
     
     // If it's already an absolute URL, return it as is
     if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
+      console.log('Using absolute URL:', avatarPath);
       return avatarPath;
     }
     
-    // If it's a relative path, prepend the API base URL
-    // Remove the first slash if it exists to avoid double slashes
-    const path = avatarPath.startsWith('/') ? avatarPath.substring(1) : avatarPath;
-    return `${API_URL.replace('/api', '')}/${path}`;
+    // Clean up the path and ensure it starts with the correct prefix
+    const cleanPath = avatarPath.replace(/^\/+/, '').replace(/^uploads\//, '');
+    const finalUrl = `http://localhost:5000/uploads/${cleanPath}`;
+    
+    console.log('Image URL construction:', {
+      original: avatarPath,
+      cleaned: cleanPath,
+      final: finalUrl
+    });
+    
+    return finalUrl;
   };
 
   const getProficiencyColor = (proficiency: Skill['proficiency']) => {

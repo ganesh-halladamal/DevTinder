@@ -48,6 +48,22 @@ require('./config/passport');
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // API Routes
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use('/matches', matchesRoutes);
+app.use('/messages', messagesRoutes);
+app.use('/projects', projectsRoutes);
+app.use('/settings', settingsRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error'
+  });
+});
+
+module.exports = app;
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/matches', matchesRoutes);
