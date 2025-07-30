@@ -4,21 +4,16 @@
  * @returns The complete URL to the avatar image
  */
 export const formatAvatarUrl = (avatarPath?: string): string => {
-  if (!avatarPath) return '/default-avatar.png';
+  if (!avatarPath || avatarPath.trim() === '') return '/default-avatar.png';
   
   if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
     return avatarPath;
   }
   
-  const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+  // Remove any leading slashes and 'uploads/' if present
+  const path = avatarPath.replace(/^\/?(uploads\/)?/, '');
   
-  // Clean up the avatar path
-  const cleanPath = avatarPath.startsWith('/') ? avatarPath : `/${avatarPath}`;
-  
-  // Handle both /uploads and /api/uploads paths
-  if (cleanPath.startsWith('/uploads/')) {
-    return `${baseUrl}${cleanPath}`;
-  } else {
-    return `${baseUrl}/uploads${cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`}`;
-  }
+  // Construct the full URL using the base API URL from environment
+  const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
+  return `${baseUrl}/uploads/${path}`;
 };

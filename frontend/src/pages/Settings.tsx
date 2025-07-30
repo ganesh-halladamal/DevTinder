@@ -12,12 +12,10 @@ const Settings: React.FC = () => {
   const [message, setMessage] = useState('');
   const [settings, setSettings] = useState({
     emailNotifications: true,
-    pushNotifications: false,
     showProfile: true,
     distance: 75,
     experience: 'senior',
-    availability: 'full-time',
-    theme: 'light'
+    availability: 'full-time'
   });
 
   const experienceLevels = ['beginner', 'intermediate', 'senior'];
@@ -33,18 +31,9 @@ const Settings: React.FC = () => {
       const response = await settingsAPI.getSettings();
       const userSettings = (response as any).data.settings;
       
-      // Ensure theme matches the theme context
-      if (userSettings.theme && userSettings.theme !== theme) {
-        const themeContext = require('../context/ThemeContext');
-        if (themeContext.useTheme) {
-          // Update theme context to match user preference
-          // Note: This is a workaround for the theme sync issue
-          localStorage.setItem('theme', userSettings.theme);
-          window.location.reload(); // Force reload to apply theme
-        }
-      }
-      
-      setSettings(userSettings);
+      // Remove theme from settings as it's handled by ThemeContext
+      const { theme, ...settingsWithoutTheme } = userSettings;
+      setSettings(settingsWithoutTheme);
     } catch (error) {
       console.error('Failed to load settings:', error);
       setMessage('Failed to load settings');
@@ -61,17 +50,9 @@ const Settings: React.FC = () => {
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
-      // Ensure theme is synchronized
-      const saveData = {
-        ...settings,
-        theme: theme // Use current theme from context
-      };
-      
-      await settingsAPI.updateSettings(saveData);
+      // Don't include theme in settings as it's handled by ThemeContext
+      await settingsAPI.updateSettings(settings);
       setMessage('Settings saved successfully!');
-      
-      // Update local storage to match
-      localStorage.setItem('theme', theme);
     } catch (error) {
       console.error('Save settings error:', error);
       setMessage(`Failed to save settings: ${error}`);
@@ -127,15 +108,7 @@ const Settings: React.FC = () => {
               />
             </label>
 
-            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700 rounded-lg cursor-pointer">
-              <span className="font-medium text-gray-800 dark:text-gray-200">Push Notifications</span>
-              <input
-                type="checkbox"
-                checked={settings.pushNotifications}
-                onChange={(e) => handleSettingChange('pushNotifications', e.target.checked)}
-                className="h-5 w-5 text-purple-600 dark:text-purple-400 rounded"
-              />
-            </label>
+            {/* Removed push notifications as it requires service worker setup */}
           </div>
 
           {/* Discovery Preferences */}

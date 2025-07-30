@@ -23,7 +23,7 @@ exports.getMessages = async (req, res) => {
 
     // Get messages with pagination
     const messages = await Message.find({ match: matchId })
-      .sort('-createdAt')
+      .sort('createdAt') // Changed from -createdAt to show oldest first
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .populate('sender', 'name avatar');

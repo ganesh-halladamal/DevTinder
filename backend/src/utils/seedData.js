@@ -86,40 +86,6 @@ const generateSampleUsers = async () => {
 
   return [
     {
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      password: hashedPassword,
-      bio: 'Full-stack developer with 3 years of experience. Passionate about React, Node.js, and building scalable web applications.',
-      location: 'San Francisco, CA',
-      jobRole: 'Full Stack Developer',
-      avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-      skills: [...skills.intermediate, ...skills.beginner.slice(0, 2)],
-      projects: [sampleProjects[0], sampleProjects[3]],
-      interests: ['Web Development', 'UI/UX Design', 'Open Source'],
-      socialLinks: {
-        github: 'https://github.com/alicejohnson',
-        linkedin: 'https://linkedin.com/in/alicejohnson',
-        twitter: 'https://twitter.com/alicejohnson',
-        portfolio: 'https://alice-johnson.dev'
-      }
-    },
-    {
-      name: 'Bob Smith',
-      email: 'bob@example.com',
-      password: hashedPassword,
-      bio: 'Backend developer specializing in Node.js and database optimization. Looking to collaborate on open-source projects.',
-      location: 'Seattle, WA',
-      jobRole: 'Backend Developer',
-      avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-      skills: [...skills.advanced.slice(0, 2), ...skills.intermediate.slice(0, 3)],
-      projects: [sampleProjects[1], sampleProjects[4]],
-      interests: ['Backend Development', 'Databases', 'Performance Optimization'],
-      socialLinks: {
-        github: 'https://github.com/bobsmith',
-        linkedin: 'https://linkedin.com/in/bobsmith',
-      }
-    },
-    {
       name: 'Charlie Davis',
       email: 'charlie@example.com',
       password: hashedPassword,

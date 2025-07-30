@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import ProfileView from './pages/ProfileView';
 import EditProfile from './pages/EditProfile';
 import Matches from './pages/Matches';
 import Chat from './pages/Chat';
@@ -31,6 +32,7 @@ const App = () => {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<ProfileView />} />
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/matches" element={<Matches />} />

@@ -90,19 +90,7 @@ const Home: React.FC = () => {
     }
   };
 
-  // Function to format avatar URL correctly
-  const formatAvatarUrl = (avatarPath?: string) => {
-    if (!avatarPath) return '/default-avatar.png';
-    
-    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
-      return avatarPath;
-    }
-    
-    // Remove any leading slashes and construct the full URL
-    const path = avatarPath.startsWith('/') ? avatarPath.substring(1) : avatarPath;
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    return `${baseUrl}/${path}`;
-  };
+  // Using centralized formatAvatarUrl from imageUtils
 
   if (isLoading) {
     return (

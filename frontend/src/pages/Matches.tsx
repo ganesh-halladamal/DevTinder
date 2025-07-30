@@ -1,261 +1,227 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { matchesAPI } from '../services/api';
-import socketService from '../services/socket';
-import { useAuth } from '../hooks/useAuth';
-import { formatAvatarUrl } from '../services/imageService';
-
-interface MatchUser {
-  _id: string;
-  name: string;
-  avatar: string;
-  bio: string;
-}
+import api from '../services/api';
+import { formatAvatarUrl } from '../utils/imageUtils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { MessageCircle, MapPin, Briefcase, Heart, Bookmark, X, RefreshCw } from 'lucide-react';
 
 interface Match {
   _id: string;
-  users: MatchUser[];
-  lastMessage?: {
-    content: string;
-    createdAt: string;
+  displayUser: {
+    _id: string;
+    name: string;
+    avatar: string;
+    bio: string;
+    jobRole: string;
+    location: string;
   };
-  matchScore?: number;
-  commonInterests?: string[];
-  commonSkills?: string[];
-  updatedAt: string;
-}
-
-interface MatchEvent {
-  matchId: string;
-  users: MatchUser[];
-  matchScore?: number;
-  commonInterests?: string[];
-  commonSkills?: string[];
-}
-
-interface MessageEvent {
-  match: string;
-  content: string;
-  createdAt: string;
-  sender: string;
-  _id: string;
+  matchScore: number;
+  isBookmarked: boolean;
 }
 
 const Matches: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
-  
-  const loadMatches = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      console.log('Fetching matches from API...');
-      const response = await matchesAPI.getMatches() as { data: { matches: Match[] } };
-      console.log('Matches fetched:', response.data.matches);
-      setMatches(response.data.matches || []);
-    } catch (error) {
-      console.error('Failed to load matches:', error);
-      setError('Failed to load your matches. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
+
+  useEffect(() => {
+    fetchMatches();
   }, []);
 
-  useEffect(() => {
-    loadMatches();
-  }, [loadMatches]);
-
-  // Refresh matches periodically (every 30 seconds)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadMatches();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [loadMatches]);
-
-  // Real-time updates for new matches and messages
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    
-    if (socket) {
-      console.log('Setting up socket listeners for matches');
+  const fetchMatches = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get('/matches');
+      console.log('Matches response:', response.data);
       
-      const handleNewMatch = (data: any) => {
-        console.log('New match received:', data);
-        loadMatches();
-      };
-
-      const handleMessageReceived = (data: any) => {
-        console.log('New message received:', data);
-        setMatches(prevMatches => 
-          prevMatches.map(match => 
-            match._id === data.match 
-              ? { ...match, lastMessage: { content: data.content, createdAt: data.createdAt } }
-              : match
-          )
-        );
-      };
+      const matchesData = (response.data as any)?.matches || [];
       
-      socket.on('new_match', handleNewMatch);
-      socket.on('message_received', handleMessageReceived);
+      // Ensure we have valid matches array
+      const validMatches = Array.isArray(matchesData) ? matchesData : [];
+      setMatches(validMatches);
       
-      return () => {
-        console.log('Cleaning up socket listeners');
-        socket.off('new_match', handleNewMatch);
-        socket.off('message_received', handleMessageReceived);
-      };
+      if (validMatches.length === 0) {
+        console.log('No matches found - this could be due to:');
+        console.log('1. No users in the database');
+        console.log('2. No matches created between users');
+        console.log('3. All matches have status other than "active"');
+        console.log('4. Database connection issues');
+      }
+    } catch (error) {
+      console.error('Error fetching matches:', error);
+      setError('Failed to load matches. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  }, [loadMatches]);
-  
-  if (isLoading) {
+  };
+
+  const handleArchiveMatch = async (matchId: string) => {
+    try {
+      await api.put(`/matches/${matchId}/status`, { status: 'archived' });
+      setMatches(prev => prev.filter(match => match._id !== matchId));
+    } catch (error) {
+      console.error('Error archiving match:', error);
+      alert('Failed to archive match. Please try again.');
+    }
+  };
+
+  // Bookmark functionality removed as requested
+
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-        <p className="mt-4 text-gray-600">Loading your matches...</p>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Your Matches</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center space-x-4">
+                  <div className="h-12 w-12 rounded-full bg-gray-300 animate-pulse"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-32 bg-gray-300 animate-pulse"></div>
+                    <div className="h-3 w-24 bg-gray-300 animate-pulse"></div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-20 w-full bg-gray-300 animate-pulse"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
-  
+
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 max-w-md">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Error</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
-          <button 
-            onClick={loadMatches}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg font-medium transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Your Matches</h1>
+        <Card className="text-center py-12">
+          <CardContent>
+            <Heart className="w-16 h-16 mx-auto mb-4 text-red-400" />
+            <h2 className="text-xl font-semibold mb-2">Error Loading Matches</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={fetchMatches}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
-  
-  if (!matches || !matches.length) {
+
+  if (!matches.length) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] text-center px-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-10 max-w-md w-full mx-auto">
-          <div className="text-7xl mb-6">💔</div>
-          <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">No matches yet</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-8">
-            Start swiping to find your perfect dev match!
-          </p>
-          <Link 
-            to="/" 
-            className="bg-indigo-600 hover:bg-indigo-700 text-white py-4 px-8 rounded-xl font-medium transition-colors inline-block"
-          >
-            Find Matches
-          </Link>
-        </div>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Your Matches</h1>
+        <Card className="text-center py-12">
+          <CardContent>
+            <Heart className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-semibold mb-2">No matches yet</h2>
+            <div className="text-muted-foreground mb-4 space-y-2">
+              <p>Start swiping to find your perfect developer match!</p>
+              <div className="text-sm text-muted-foreground/80 mt-4">
+                <p className="font-medium mb-2">Troubleshooting:</p>
+                <ul className="text-left max-w-md mx-auto space-y-1">
+                  <li>• Ensure backend server is running on port 5000</li>
+                  <li>• Verify database connection is working</li>
+                  <li>• Run database setup script if needed</li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex gap-4 justify-center">
+              <Button asChild>
+                <Link to="/search">Find Matches</Link>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={fetchMatches}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
-  
-  const getMatchUser = (match: Match) => {
-    const currentUserId = user?.id || localStorage.getItem('userId');
-    return match.users.find(u => u._id !== currentUserId) || match.users[0];
-  };
 
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return date.toLocaleDateString();
-  };
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-  
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Your Matches</h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          {matches.length} {matches.length === 1 ? 'developer' : 'developers'} are ready to chat
-        </p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Your Matches</h1>
+        <p className="text-muted-foreground">{matches.length} {matches.length === 1 ? 'match' : 'matches'} found</p>
       </div>
-      
-      <div className="grid gap-4">
-        {matches.map((match) => {
-          const otherUser = getMatchUser(match);
-          
-          return (
-            <Link
-              key={match._id}
-              to={`/chat/${match._id}`}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 p-4 flex items-center space-x-4"
-            >
-              <div className="relative">
-                {otherUser.avatar ? (
-                  <img
-                    src={formatAvatarUrl(otherUser.avatar)}
-                    alt={otherUser.name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                    {getInitials(otherUser.name)}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {matches.map((match) => (
+          <Card key={match._id} className="overflow-hidden hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
+                    <img
+                      src={formatAvatarUrl(match.displayUser?.avatar)}
+                      alt={match.displayUser?.name || 'User'}
+                      className="h-full w-full rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = '/default-avatar.png';
+                      }}
+                    />
                   </div>
-                )}
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                    {otherUser.name}
-                  </h3>
-                  {match.lastMessage && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatRelativeTime(match.lastMessage.createdAt)}
-                    </span>
-                  )}
-                </div>
-                
-                {match.commonInterests && match.commonInterests.length > 0 && (
-                  <div className="flex gap-1 mt-1">
-                    {match.commonInterests.slice(0, 3).map((interest, idx) => (
-                      <span key={idx} className="text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-1 rounded-full">
-                        {interest}
-                      </span>
-                    ))}
-                    {match.commonInterests.length > 3 && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        +{match.commonInterests.length - 3}
-                      </span>
+                  <div>
+                    <CardTitle className="text-lg">{match.displayUser?.name || 'Unknown User'}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Briefcase className="h-3 w-3" />
+                      {match.displayUser?.jobRole || 'Developer'}
+                    </CardDescription>
+                    {match.displayUser?.location && (
+                      <CardDescription className="flex items-center gap-2 mt-1">
+                        <MapPin className="h-3 w-3" />
+                        {match.displayUser.location}
+                      </CardDescription>
                     )}
                   </div>
-                )}
-                
-                {match.lastMessage ? (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate mt-1">
-                    {match.lastMessage.content}
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-400 dark:text-gray-500 italic mt-1">
-                    Say hello to start the conversation!
-                  </p>
-                )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleArchiveMatch(match._id)}
+                    className="text-red-500"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              
-              <div className="flex-shrink-0">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {match.displayUser?.bio && (
+                <p className="text-sm text-muted-foreground line-clamp-2">{match.displayUser.bio}</p>
+              )}
+
+              <div className="flex gap-2 pt-4">
+                <Button className="flex-1" asChild>
+                  <Link to={`/chat/${match._id}`}>
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Message
+                  </Link>
+                </Button>
+                <Button variant="outline" className="flex-1" asChild>
+                  <Link to={`/profile/${match.displayUser?._id}`}>
+                    View Profile
+                  </Link>
+                </Button>
               </div>
-            </Link>
-          );
-        })}
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

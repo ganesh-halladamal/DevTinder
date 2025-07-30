@@ -70,6 +70,9 @@ router.put('/profile', auth, profileValidation, userController.updateProfile);
 // Serve static files from the uploads directory
 router.use('/uploads', express.static('uploads'));
 
+// Get all users (basic listing)
+router.get('/', auth, userController.getAllUsers);
+
 // Search routes
 router.get('/search', auth, userController.searchUsers);
 

@@ -4,7 +4,7 @@ const User = require('../models/user');
 exports.getSettings = async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
-      .select('settings emailNotifications pushNotifications showProfile distance experience availability theme');
+      .select('settings emailNotifications showProfile distance experience availability');
     
     if (!user) {
       return res.status(404).json({
@@ -16,18 +16,20 @@ exports.getSettings = async (req, res) => {
     if (!user.settings) {
       user.settings = {
         emailNotifications: true,
-        pushNotifications: false,
         showProfile: true,
         distance: 75,
         experience: 'senior',
         availability: 'full-time',
-        theme: 'light'
+        theme: 'light' // Keep theme for backward compatibility
       };
       await user.save();
     }
 
+    // Return settings without theme as it's handled separately
+    const { theme, ...settingsWithoutTheme } = user.settings;
+    
     res.json({
-      settings: user.settings
+      settings: settingsWithoutTheme
     });
   } catch (error) {
     console.error('Get settings error:', error);
@@ -40,19 +42,17 @@ exports.getSettings = async (req, res) => {
 // Update user settings
 exports.updateSettings = async (req, res) => {
   try {
-    const { emailNotifications, pushNotifications, showProfile, distance, experience, availability, theme } = req.body;
+    const { emailNotifications, showProfile, distance, experience, availability } = req.body;
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
       {
         $set: {
           'settings.emailNotifications': emailNotifications,
-          'settings.pushNotifications': pushNotifications,
           'settings.showProfile': showProfile,
           'settings.distance': distance,
           'settings.experience': experience,
-          'settings.availability': availability,
-          'settings.theme': theme
+          'settings.availability': availability
         }
       },
       { new: true, runValidators: true }
@@ -64,9 +64,12 @@ exports.updateSettings = async (req, res) => {
       });
     }
 
+    // Return settings without theme
+    const { theme, ...settingsWithoutTheme } = user.settings;
+    
     res.json({
       message: 'Settings updated successfully',
-      settings: user.settings
+      settings: settingsWithoutTheme
     });
   } catch (error) {
     console.error('Update settings error:', error);

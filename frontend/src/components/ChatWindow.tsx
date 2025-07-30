@@ -165,7 +165,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 bg-background">
         {messages.map(renderMessage)}
         {isTyping && (
           <div className="flex items-center text-sm text-muted-foreground">
@@ -177,19 +177,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* Message Input */}
-      <form onSubmit={handleSubmit} className="border-t border-border p-4">
+      <form onSubmit={handleSubmit} className="border-t border-border p-4 bg-background">
         <div className="flex items-center space-x-2">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 bg-background text-foreground rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 bg-background text-foreground rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary border border-input"
           />
           <button
             type="submit"
             disabled={!newMessage.trim()}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg disabled:opacity-50"
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg disabled:opacity-50 hover:bg-primary/90"
           >
             Send
           </button>

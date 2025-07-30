@@ -73,10 +73,6 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: true
     },
-    pushNotifications: {
-      type: Boolean,
-      default: false
-    },
     showProfile: {
       type: Boolean,
       default: true
@@ -96,11 +92,6 @@ const userSchema = new mongoose.Schema({
       type: String,
       enum: ['full-time', 'part-time', 'freelance', 'weekends'],
       default: 'full-time'
-    },
-    theme: {
-      type: String,
-      enum: ['light', 'dark'],
-      default: 'light'
     }
   },
   matches: [{

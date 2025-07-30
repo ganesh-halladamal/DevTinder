@@ -123,6 +123,12 @@ const Chat: React.FC = () => {
                 const messagesData = messagesResponse.data as MessagesResponse;
                 setMessages(messagesData.messages || []);
               }
+
+              // Join match room for socket events
+              if (socket && socket.connected) {
+                socket.emit('join_match', matchId);
+                console.log('Joined match room:', matchId);
+              }
             } else {
               setError('Could not identify chat partner');
             }
@@ -145,25 +151,29 @@ const Chat: React.FC = () => {
     
     // Socket event handlers
     if (socket) {
-      socket.on(`message:${matchId}`, (newMessage: Message) => {
+      const handleNewMessage = (newMessage: Message) => {
+        console.log('Received new message:', newMessage);
         setMessages((prevMessages) => [...prevMessages, newMessage]);
         
         // Mark message as read
         if (newMessage.sender._id !== user.id) {
-          messagesAPI.markAsRead(matchId);
+          messagesAPI.markAsRead(matchId).catch(console.error);
         }
-      });
-      
-      socket.on('user_status', (data: {userId: string, status: 'online' | 'offline'}) => {
+      };
+
+      const handleUserStatus = (data: {userId: string, status: 'online' | 'offline'}) => {
         if (partner && partner._id === data.userId) {
           setPartner((prev) => prev ? { ...prev, status: data.status } : null);
         }
-      });
+      };
+      
+      socket.on(`message:${matchId}`, handleNewMessage);
+      socket.on('user_status', handleUserStatus);
       
       // Clean up
       return () => {
-        socket.off(`message:${matchId}`);
-        socket.off('user_status');
+        socket.off(`message:${matchId}`, handleNewMessage);
+        socket.off('user_status', handleUserStatus);
       };
     }
   }, [matchId, socket, user]);
@@ -178,8 +188,8 @@ const Chat: React.FC = () => {
       const tempMessage: Message = {
         _id: `temp-${Date.now()}`,
         sender: {
-          _id: user.id,
-          name: user.name,
+          _id: user.id || '',
+          name: user.name || 'Unknown',
           avatar: formatAvatarUrl(user.avatar || '')
         },
         content: inputMessage.trim(),
@@ -211,16 +221,16 @@ const Chat: React.FC = () => {
   };
   
   if (isLoading) {
-    return <div className="flex justify-center p-8">Loading conversation...</div>;
+    return <div className="flex justify-center p-8 text-foreground">Loading conversation...</div>;
   }
   
   if (error) {
     return (
       <div className="text-center p-8">
-        <p className="text-red-500 mb-4">{error}</p>
-        <button 
+        <p className="text-destructive mb-4">{error}</p>
+        <button
           onClick={() => navigate('/matches')}
-          className="bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700"
+          className="bg-primary text-primary-foreground py-2 px-4 rounded hover:bg-primary/90"
         >
           Back to Matches
         </button>
@@ -229,33 +239,33 @@ const Chat: React.FC = () => {
   }
   
   if (!partner) {
-    return <div className="text-center p-8">Match not found</div>;
+    return <div className="text-center p-8 text-foreground">Match not found</div>;
   }
   
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen bg-background">
       {/* Chat header */}
-      <div className="bg-white shadow p-4 flex items-center">
-        <button 
+      <div className="bg-background border-b border-border shadow-sm p-4 flex items-center">
+        <button
           onClick={() => navigate('/matches')}
-          className="mr-4 text-gray-600"
+          className="mr-4 text-foreground hover:text-primary transition-colors"
         >
           ← Back
         </button>
-        <img 
-          src={partner.avatar} 
-          alt={partner.name} 
+        <img
+          src={partner.avatar}
+          alt={partner.name}
           className="w-10 h-10 rounded-full mr-3"
         />
         <div className="flex-1">
-          <h2 className="font-semibold">{partner.name}</h2>
+          <h2 className="font-semibold text-foreground">{partner.name}</h2>
           <div className="flex items-center text-sm">
-            <span 
+            <span
               className={`w-2 h-2 rounded-full mr-2 ${
-                partner.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+                partner.status === 'online' ? 'bg-green-500' : 'bg-muted-foreground'
               }`}
             />
-            <span className="text-gray-600">
+            <span className="text-muted-foreground">
               {partner.status === 'online' ? 'Online' : 'Offline'}
             </span>
           </div>
@@ -263,32 +273,32 @@ const Chat: React.FC = () => {
       </div>
       
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 bg-muted/30">
         <div className="space-y-4">
           {messages.map((message) => {
             const isOwnMessage = message.sender._id === user?.id;
             
             return (
-              <div 
+              <div
                 key={message._id}
                 className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
               >
-                <div 
+                <div
                   className={`max-w-xs md:max-w-md rounded-lg px-4 py-2 ${
-                    isOwnMessage 
-                      ? 'bg-indigo-600 text-white' 
-                      : 'bg-white text-gray-800 border border-gray-200'
+                    isOwnMessage
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card text-card-foreground border border-border'
                   }`}
                 >
-                  <p>{message.content}</p>
-                  <div 
+                  <p className="text-sm">{message.content}</p>
+                  <div
                     className={`text-xs mt-1 ${
-                      isOwnMessage ? 'text-indigo-200' : 'text-gray-500'
+                      isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
                     }`}
                   >
-                    {new Date(message.createdAt).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
+                    {new Date(message.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
                     })}
                   </div>
                 </div>
@@ -300,20 +310,20 @@ const Chat: React.FC = () => {
       </div>
       
       {/* Message input */}
-      <form 
+      <form
         onSubmit={handleSendMessage}
-        className="bg-white border-t border-gray-200 p-4 flex"
+        className="bg-background border-t border-border p-4 flex"
       >
         <input
           type="text"
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1 rounded-full border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="flex-1 rounded-lg border border-input bg-background text-foreground px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
         />
         <button
           type="submit"
-          className="ml-3 bg-indigo-600 text-white rounded-full px-5 py-2 font-medium hover:bg-indigo-700"
+          className="ml-3 bg-primary text-primary-foreground rounded-lg px-5 py-2 font-medium hover:bg-primary/90 disabled:opacity-50"
           disabled={!inputMessage.trim()}
         >
           Send

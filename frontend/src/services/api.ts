@@ -125,10 +125,16 @@ const matchesAPI = {
     return api.get(`/matches/${matchId}`);
   },
   createMatch: async (userId: string) => {
-    return api.post('/matches', { userId });
+    return api.post('/matches', { targetUserId: userId });
   },
   rejectUser: async (userId: string) => {
     return api.post('/matches/reject', { userId });
+  },
+  toggleBookmark: async (matchId: string) => {
+    return api.put(`/matches/${matchId}/bookmark`);
+  },
+  updateMatchStatus: async (matchId: string, status: string) => {
+    return api.put(`/matches/${matchId}/status`, { status });
   }
 };
 

@@ -29,13 +29,38 @@ const matchSchema = new mongoose.Schema({
   }],
   commonSkills: [{
     type: String
-  }]
+  }],
+  // New fields for enhanced match information
+  primarySkills: [{
+    type: String
+  }],
+  projectInterests: [{
+    type: String
+  }],
+  isBookmarked: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: true
 });
 
 // Ensure that a match is unique between two users
+// Add compound unique index on the sorted users array
 matchSchema.index({ users: 1 }, { unique: true });
+
+// Pre-save hook to ensure consistent ordering of user IDs
+matchSchema.pre('save', function(next) {
+  if (this.users && this.users.length === 2) {
+    // Sort user IDs to ensure [user1, user2] and [user2, user1] are treated the same
+    this.users = this.users.sort((a, b) => {
+      const aStr = a.toString();
+      const bStr = b.toString();
+      return aStr.localeCompare(bStr);
+    });
+  }
+  next();
+});
 
 // Method to check if two users are matched
 matchSchema.statics.areMatched = async function(userId1, userId2) {

@@ -31,6 +31,25 @@ const setupSocketHandlers = (io) => {
     // Join user's room for private messages
     socket.join(socket.userId);
 
+    // Handle match room joining
+    socket.on('join_match', async (matchId) => {
+      try {
+        // Verify the match exists and user is part of it
+        const match = await Match.findOne({
+          _id: matchId,
+          users: socket.userId,
+          status: 'active'
+        });
+
+        if (match) {
+          socket.join(`match_${matchId}`);
+          console.log(`User ${socket.userId} joined match room: match_${matchId}`);
+        }
+      } catch (error) {
+        console.error('Error joining match:', error);
+      }
+    });
+
     // Handle private messaging
     socket.on('private_message', async (data) => {
       try {
@@ -55,6 +74,9 @@ const setupSocketHandlers = (io) => {
           attachments: attachments || []
         });
 
+        // Populate sender details
+        await message.populate('sender', 'name avatar');
+
         // Update match's last message
         await Match.findByIdAndUpdate(matchId, {
           lastMessage: message._id
@@ -64,12 +86,20 @@ const setupSocketHandlers = (io) => {
         const recipientId = match.users.find(id => id.toString() !== socket.userId.toString());
         
         // Emit the message to both users
-        const messageDetails = message.getMessageDetails();
-        socket.emit('message_sent', messageDetails);
+        const messageDetails = {
+          _id: message._id,
+          sender: {
+            _id: message.sender._id,
+            name: message.sender.name,
+            avatar: message.sender.avatar || '/default-avatar.png'
+          },
+          content: message.content,
+          createdAt: message.createdAt,
+          status: message.status
+        };
         
-        if (activeUsers.has(recipientId)) {
-          io.to(activeUsers.get(recipientId)).emit('message_received', messageDetails);
-        }
+        // Emit to both sender and recipient in the match room
+        io.to(`match_${matchId}`).emit(`message:${matchId}`, messageDetails);
 
       } catch (error) {
         console.error('Message error:', error);

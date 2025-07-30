@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 
 const NotFound: React.FC = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="max-w-md w-full text-center p-8">
-        <h1 className="text-6xl font-bold text-indigo-600">404</h1>
-        <h2 className="text-3xl font-semibold mt-4">Page Not Found</h2>
-        <p className="mt-4 text-lg text-gray-600">The page you're looking for doesn't exist or has been moved.</p>
+        <h1 className="text-6xl font-bold text-indigo-600 dark:text-indigo-400">404</h1>
+        <h2 className="text-3xl font-semibold mt-4 dark:text-white">Page Not Found</h2>
+        <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">The page you're looking for doesn't exist or has been moved.</p>
         <div className="mt-8">
           <Link
             to="/"

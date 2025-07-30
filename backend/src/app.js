@@ -47,13 +47,13 @@ require('./config/passport');
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// API Routes
-app.use('/auth', authRoutes);
-app.use('/users', userRoutes);
-app.use('/matches', matchesRoutes);
-app.use('/messages', messagesRoutes);
-app.use('/projects', projectsRoutes);
-app.use('/settings', settingsRoutes);
+// API Routes - Mount all routes under /api prefix
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/matches', matchesRoutes);
+app.use('/api/messages', messagesRoutes);
+app.use('/api/projects', projectsRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -62,14 +62,6 @@ app.use((err, req, res, next) => {
     message: err.message || 'Internal Server Error'
   });
 });
-
-module.exports = app;
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/matches', matchesRoutes);
-app.use('/api/messages', messagesRoutes);
-app.use('/api/projects', projectsRoutes);
-app.use('/api/settings', settingsRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -81,5 +73,7 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Server error', error: err.message });
 });
+
+module.exports = app;
 
 module.exports = app;

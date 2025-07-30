@@ -1,7 +1,8 @@
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 
 class SocketService {
-  private socket: Socket | null = null;
+  private socket: any = null;
   private static instance: SocketService;
 
   private constructor() {}
@@ -13,7 +14,7 @@ class SocketService {
     return SocketService.instance;
   }
 
-  connect(token: string): Socket {
+  connect(token: string): any {
     if (!this.socket) {
       // Get socket URL from environment or default to backend URL
       const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -49,7 +50,7 @@ class SocketService {
     }
   }
 
-  getSocket(): Socket | null {
+  getSocket(): any {
     return this.socket;
   }
 
@@ -64,6 +65,14 @@ class SocketService {
       content,
       attachments
     });
+  }
+
+  joinMatchRoom(matchId: string): void {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
+    }
+
+    this.socket.emit('join_match', matchId);
   }
 
   // Typing indicators
@@ -102,4 +111,4 @@ class SocketService {
   }
 }
 
-export default SocketService.getInstance(); 
+export default SocketService.getInstance();

@@ -1,162 +1,124 @@
 const Match = require('../models/match');
 const User = require('../models/user');
 
-// Get user's matches
-exports.getMatches = async (req, res) => {
+const createMatch = async (req, res) => {
   try {
-    const matches = await Match.find({
-      users: req.user.id,
-      status: 'active'
-    })
-    .populate('users', '-password -github -google')
-    .populate('lastMessage')
-    .sort('-updatedAt');
+    const { userId1, userId2 } = req.body;
 
-    res.json({ matches });
-  } catch (error) {
-    console.error('Get matches error:', error);
-    res.status(500).json({
-      message: 'Error fetching matches'
-    });
-  }
-};
+    if (!userId1 || !userId2 || userId1 === userId2) {
+      return res.status(400).json({ message: 'Invalid user IDs provided' });
+    }
 
-// Create a new match
-exports.createMatch = async (req, res) => {
-  try {
-    const { userId } = req.body;
-    
-    // Check if match already exists
+    const sortedUsers = [userId1, userId2].sort();
+
     const existingMatch = await Match.findOne({
-      users: { $all: [req.user.id, userId] }
+      users: { $all: sortedUsers, $size: 2 }
     });
 
     if (existingMatch) {
-      return res.status(400).json({
-        message: 'Match already exists'
-      });
+      return res.status(200).json(existingMatch);
     }
 
-    // Get both users
-    const [user1, user2] = await Promise.all([
-      User.findById(req.user.id),
-      User.findById(userId)
-    ]);
-
-    if (!user1 || !user2) {
-      return res.status(404).json({
-        message: 'User not found'
-      });
-    }
-
-    // Calculate common interests and skills
-    const commonInterests = user1.interests.filter(interest => 
-      user2.interests.includes(interest)
-    );
-
-    const commonSkills = user1.skills
-      .map(skill => skill.name)
-      .filter(skillName => 
-        user2.skills.some(s => s.name === skillName)
-      );
-
-    // Calculate match score based on common interests and skills
-    const matchScore = Math.min(
-      ((commonInterests.length * 5) + (commonSkills.length * 5)), 
-      100
-    );
-
-    // Create new match
-    const match = await Match.create({
-      users: [req.user.id, userId],
-      matchScore,
-      commonInterests,
-      commonSkills
+    const match = new Match({
+      users: sortedUsers
     });
 
-    // Add match to both users' matches array
-    user1.matches.push(userId);
-    user2.matches.push(req.user.id);
-    await Promise.all([user1.save(), user2.save()]);
-
-    // Populate match details
-    await match.populate('users', '-password -github -google');
-
-    // Emit socket event for new match
-    const io = req.app.get('socketio');
-    if (io) {
-      io.emit('new_match', {
-        matchId: match._id,
-        users: match.users,
-        matchScore: match.matchScore,
-        commonInterests: match.commonInterests,
-        commonSkills: match.commonSkills
-      });
-    }
-
-    res.status(201).json({ match });
-  } catch (error) {
-    console.error('Create match error:', error);
-    res.status(500).json({
-      message: 'Error creating match'
-    });
-  }
-};
-
-// Archive/Block a match
-exports.updateMatchStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
-    if (!['active', 'archived', 'blocked'].includes(status)) {
-      return res.status(400).json({
-        message: 'Invalid status'
-      });
-    }
-
-    const match = await Match.findOne({
-      _id: req.params.matchId,
-      users: req.user.id
-    });
-
-    if (!match) {
-      return res.status(404).json({
-        message: 'Match not found'
-      });
-    }
-
-    match.status = status;
     await match.save();
-
-    res.json({ match });
+    res.status(201).json(match);
   } catch (error) {
-    console.error('Update match status error:', error);
-    res.status(500).json({
-      message: 'Error updating match status'
-    });
+    if (error.code === 11000) {
+      const existingMatch = await Match.findOne({
+        users: { $all: [req.body.userId1, req.body.userId2].sort(), $size: 2 }
+      });
+      res.status(200).json(existingMatch);
+    } else {
+      console.error('Error creating match:', error);
+      res.status(500).json({ message: error.message });
+    }
   }
 };
 
-// Get match details
-exports.getMatchDetails = async (req, res) => {
+const swipeUser = async (req, res) => {
   try {
-    const match = await Match.findOne({
-      _id: req.params.matchId,
-      users: req.user.id
-    })
-    .populate('users', '-password -github -google')
-    .populate('lastMessage');
+    const { targetUserId, action } = req.body;
+    const currentUserId = req.user._id;
 
-    if (!match) {
-      return res.status(404).json({
-        message: 'Match not found'
-      });
+    if (!targetUserId || !action) {
+      return res.status(400).json({ message: 'Target user ID and action are required' });
     }
 
-    res.json({ match });
+    if (action === 'like') {
+      // Check if the target user has already liked current user
+      const reverseLike = await Match.findOne({
+        users: { $all: [targetUserId, currentUserId], $size: 2 }
+      });
+
+      if (reverseLike) {
+        // It's a match!
+        return res.status(201).json({ 
+          message: 'It\'s a match!', 
+          match: reverseLike 
+        });
+      }
+
+      // Create a pending like
+      const newMatch = new Match({
+        users: [currentUserId, targetUserId].sort(),
+        status: 'pending'
+      });
+
+      await newMatch.save();
+      return res.status(201).json({ message: 'Like sent successfully' });
+    }
+
+    if (action === 'skip') {
+      // Record skip action (optional - could store in a separate collection)
+      return res.status(200).json({ message: 'User skipped' });
+    }
+
+    res.status(400).json({ message: 'Invalid action' });
   } catch (error) {
-    console.error('Get match details error:', error);
-    res.status(500).json({
-      message: 'Error fetching match details'
-    });
+    console.error('Swipe error:', error);
+    res.status(500).json({ message: error.message });
   }
-}; 
+};
+
+const getMatches = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const matches = await Match.find({
+      users: userId,
+      status: 'active'
+    }).populate('users', 'name avatar bio jobRole location').sort({ createdAt: -1 });
+    
+    // Format matches for frontend
+    const formattedMatches = matches.map(match => {
+      const otherUser = match.users.find(u => u._id.toString() !== userId.toString());
+      return {
+        _id: match._id,
+        displayUser: {
+          _id: otherUser._id,
+          name: otherUser.name,
+          avatar: otherUser.avatar,
+          bio: otherUser.bio,
+          jobRole: otherUser.jobRole,
+          location: otherUser.location
+        },
+        matchScore: match.matchScore || 0,
+        isBookmarked: match.isBookmarked || false,
+        matchedAt: match.createdAt
+      };
+    });
+    
+    res.json({ matches: formattedMatches });
+  } catch (error) {
+    console.error('Error fetching matches:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  createMatch,
+  swipeUser,
+  getMatches
+};

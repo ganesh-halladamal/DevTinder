@@ -1,6 +1,39 @@
 const { validationResult } = require('express-validator');
 const User = require('../models/user');
+const Match = require('../models/match');
 const { saveBase64Image } = require('../utils/fileUpload');
+
+// Get all users (basic listing)
+exports.getAllUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Get all users excluding current user
+    const users = await User.find({ _id: { $ne: req.user.id } })
+      .select('-password -github -google')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await User.countDocuments({ _id: { $ne: req.user.id } });
+
+    res.json({
+      users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get all users error:', error);
+    res.status(500).json({
+      message: 'Error fetching users'
+    });
+  }
+};
 
 // Get user profile
 exports.getProfile = async (req, res) => {
@@ -21,10 +54,15 @@ exports.getProfile = async (req, res) => {
     const userProfile = user.toObject();
     userProfile._id = user._id;
 
-    // Calculate stats
+    // Calculate stats - count only active matches for consistency with matches page
+    const activeMatchesCount = await Match.countDocuments({
+      users: req.params.id,
+      status: 'active'
+    });
+    
     const stats = {
       projects: userProfile.projects?.length || 0,
-      matches: userProfile.matches?.length || 0
+      matches: activeMatchesCount
     };
 
     console.log(`User found: ${user.name}`);
@@ -165,10 +203,15 @@ exports.updateProfile = async (req, res) => {
       projectsCount: user.projects?.length
     });
 
-    // Calculate stats
+    // Calculate stats - count only active matches for consistency with matches page
+    const activeMatchesCount = await Match.countDocuments({
+      users: req.user.id,
+      status: 'active'
+    });
+    
     const stats = {
       projects: user.projects?.length || 0,
-      matches: user.matches?.length || 0
+      matches: activeMatchesCount
     };
 
     console.log(`Profile updated successfully for ${user.name}`);
@@ -243,15 +286,95 @@ exports.likeUser = async (req, res) => {
     // Check for mutual like
     const isMatch = likedUser.likes.includes(user._id);
     
-    // If there's a match, add to matches array for both users
-    if (isMatch && !user.matches.includes(likedUser._id)) {
-      user.matches.push(likedUser._id);
-      await user.save();
+    // If there's a match, create a proper match record and add to both users
+    if (isMatch) {
+      // Add to matches array for both users
+      if (!user.matches.includes(likedUser._id)) {
+        user.matches.push(likedUser._id);
+      }
       
       if (!likedUser.matches.includes(user._id)) {
         likedUser.matches.push(user._id);
-        await likedUser.save();
       }
+      
+      // Create a proper match record in the Match collection
+      const existingMatch = await Match.findOne({
+        users: { $all: [req.user.id, likedUser._id] }
+      });
+      
+      if (existingMatch) {
+        // Update existing pending match to active
+        existingMatch.status = 'active';
+        await existingMatch.save();
+      } else {
+        // Calculate common interests and skills
+        const commonInterests = user.interests.filter(interest =>
+          likedUser.interests.includes(interest)
+        );
+
+        const commonSkills = user.skills
+          .map(skill => skill.name)
+          .filter(skillName =>
+            likedUser.skills.some(s => s.name === skillName)
+          );
+
+        // Get primary skills (top 3 skills by proficiency)
+        const primarySkills = likedUser.skills
+          .sort((a, b) => {
+            const proficiencyOrder = { beginner: 1, intermediate: 2, advanced: 3, expert: 4 };
+            return proficiencyOrder[b.proficiency] - proficiencyOrder[a.proficiency];
+          })
+          .slice(0, 3)
+          .map(skill => skill.name);
+
+        // Get project interests from project tech stacks
+        const projectInterests = Array.from(new Set(
+          likedUser.projects.flatMap(project => project.techStack || [])
+        )).slice(0, 5);
+
+        // Calculate match score based on common interests and skills
+        const matchScore = Math.min(
+          ((commonInterests.length * 5) + (commonSkills.length * 5)),
+          100
+        );
+
+        // Create new match with active status
+        const newMatch = await Match.create({
+          users: [req.user.id, likedUser._id],
+          matchScore,
+          commonInterests,
+          commonSkills,
+          primarySkills,
+          projectInterests,
+          status: 'active'
+        });
+
+        // Populate match details
+        await newMatch.populate({
+          path: 'users',
+          select: '-password -github -google',
+          populate: {
+            path: 'projects',
+            select: 'title techStack description'
+          }
+        });
+
+        // Emit socket event for new match
+        const io = req.app.get('socketio');
+        if (io) {
+          io.emit('new_match', {
+            matchId: newMatch._id,
+            users: newMatch.users,
+            matchScore: newMatch.matchScore,
+            commonInterests: newMatch.commonInterests,
+            commonSkills: newMatch.commonSkills,
+            primarySkills: newMatch.primarySkills,
+            projectInterests: newMatch.projectInterests
+          });
+        }
+      }
+      
+      await Promise.all([user.save(), likedUser.save()]);
     }
 
     res.json({
@@ -306,6 +429,11 @@ exports.searchUsers = async (req, res) => {
       location,
       experience,
       interests,
+      availability,
+      projectType,
+      minExperience,
+      maxExperience,
+      sortBy = 'newest',
       page = 1,
       limit = 20
     } = req.query;
@@ -315,16 +443,19 @@ exports.searchUsers = async (req, res) => {
       _id: { $ne: req.user.id } // Exclude current user
     };
 
-    // Text search
+    // Text search across multiple fields
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
         { bio: { $regex: search, $options: 'i' } },
-        { jobRole: { $regex: search, $options: 'i' } }
+        { jobRole: { $regex: search, $options: 'i' } },
+        { 'skills.name': { $regex: search, $options: 'i' } },
+        { 'projects.title': { $regex: search, $options: 'i' } },
+        { 'projects.techStack': { $regex: search, $options: 'i' } }
       ];
     }
 
-    // Skills filter
+    // Skills filter - exact match
     if (skills) {
       const skillArray = Array.isArray(skills) ? skills : [skills];
       query['skills.name'] = { $in: skillArray };
@@ -335,7 +466,7 @@ exports.searchUsers = async (req, res) => {
       query.location = { $regex: location, $options: 'i' };
     }
 
-    // Experience filter (based on skill proficiency)
+    // Experience level filter (based on skill proficiency)
     if (experience) {
       const experienceLevels = {
         'beginner': ['beginner', 'intermediate'],
@@ -348,6 +479,33 @@ exports.searchUsers = async (req, res) => {
       }
     }
 
+    // Experience range filter (based on number of projects)
+    if (minExperience || maxExperience) {
+      const projectCountQuery = {};
+      
+      if (minExperience) {
+        projectCountQuery.$gte = parseInt(minExperience);
+      }
+      if (maxExperience) {
+        projectCountQuery.$lte = parseInt(maxExperience);
+      }
+      
+      query['projects.0'] = { $exists: true }; // At least one project
+      // We'll filter by project count in memory for more complex queries
+    }
+
+    // Availability filter
+    if (availability) {
+      const availabilityArray = Array.isArray(availability) ? availability : [availability];
+      query['settings.availability'] = { $in: availabilityArray };
+    }
+
+    // Project type filter
+    if (projectType) {
+      const projectTypes = Array.isArray(projectType) ? projectType : [projectType];
+      query['projects.techStack'] = { $in: projectTypes };
+    }
+
     // Interests filter
     if (interests) {
       const interestArray = Array.isArray(interests) ? interests : [interests];
@@ -357,18 +515,55 @@ exports.searchUsers = async (req, res) => {
     // Pagination
     const skip = (page - 1) * limit;
 
-    // Execute query
-    const users = await User.find(query)
+    // Get users with full data
+    let users = await User.find(query)
       .select('-password -github -google')
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+      .lean();
 
-    // Get total count for pagination
-    const total = await User.countDocuments(query);
+    // Post-processing for advanced filters
+    if (minExperience || maxExperience) {
+      users = users.filter(user => {
+        const projectCount = user.projects?.length || 0;
+        if (minExperience && projectCount < parseInt(minExperience)) return false;
+        if (maxExperience && projectCount > parseInt(maxExperience)) return false;
+        return true;
+      });
+    }
+
+    // Sorting
+    const sortOptions = {
+      'newest': { createdAt: -1 },
+      'oldest': { createdAt: 1 },
+      'name': { name: 1 },
+      'skills': { 'skills.length': -1 },
+      'projects': { 'projects.length': -1 },
+      'relevance': { 'skills.length': -1, 'projects.length': -1 }
+    };
+
+    // Apply sorting
+    const sortOrder = sortOptions[sortBy] || sortOptions.newest;
+    users.sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === 'skills') {
+        return (b.skills?.length || 0) - (a.skills?.length || 0);
+      } else if (sortBy === 'projects') {
+        return (b.projects?.length || 0) - (a.projects?.length || 0);
+      } else if (sortBy === 'relevance') {
+        const aScore = (a.skills?.length || 0) + (a.projects?.length || 0);
+        const bScore = (b.skills?.length || 0) + (b.projects?.length || 0);
+        return bScore - aScore;
+      } else {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+    });
+
+    // Pagination after filtering
+    const total = users.length;
+    const paginatedUsers = users.slice(skip, skip + parseInt(limit));
 
     res.json({
-      users,
+      users: paginatedUsers,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

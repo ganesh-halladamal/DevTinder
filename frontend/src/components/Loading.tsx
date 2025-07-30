@@ -25,7 +25,7 @@ const Loading: React.FC<LoadingProps> = ({
     <div className={containerClasses}>
       <div className="text-center">
         <div className={`animate-spin rounded-full border-b-2 border-indigo-600 mx-auto mb-4 ${sizeClasses[size]}`}></div>
-        <p className="text-gray-600">{text}</p>
+        <p className="text-gray-600 dark:text-gray-300">{text}</p>
       </div>
     </div>
   );

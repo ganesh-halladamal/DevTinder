@@ -335,7 +335,7 @@ const EditProfile: React.FC = () => {
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-2xl">
-        <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
             <h1 className="text-3xl font-bold">Edit Profile</h1>
             <p className="text-purple-100 mt-1">Update your developer profile</p>
@@ -390,14 +390,14 @@ const EditProfile: React.FC = () => {
           </span>
           <button 
             onClick={() => setToast(null)} 
-            className="ml-4 text-gray-400 hover:text-gray-600"
+            className="ml-4 text-gray-400 hover:text-gray-600 dark:text-gray-300"
           >
             <X size={18} />
           </button>
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden">
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
           <h1 className="text-3xl font-bold">Edit Profile</h1>
           <p className="text-purple-100 mt-1">Update your developer profile</p>
@@ -428,61 +428,61 @@ const EditProfile: React.FC = () => {
               </label>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-700">Profile Image</p>
-              <p className="text-xs text-gray-500">Click the camera icon to upload a new profile image (JPG/PNG only)</p>
-              <p className="text-xs text-gray-500 mt-1">Max file size: 100KB</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200 dark:text-gray-200">Profile Image</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">Click the camera icon to upload a new profile image (JPG/PNG only)</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-1">Max file size: 100KB</p>
             </div>
           </div>
 
           {/* Basic Info Section */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
+          <div className="bg-gray-50 dark:bg-gray-700/50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Basic Information</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Name*</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 dark:text-gray-200 mb-2">Name*</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="Your full name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 dark:text-gray-200 mb-2">Bio</label>
                 <textarea
                   name="bio"
                   value={formData.bio}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="Tell us about yourself"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 dark:text-gray-200 mb-2">Location</label>
                 <input
                   type="text"
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="City, State"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Job Role</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 dark:text-gray-200 mb-2">Job Role</label>
                 <input
                   type="text"
                   name="jobRole"
                   value={formData.jobRole}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="e.g., Full Stack Developer, Frontend Engineer"
                 />
               </div>
@@ -490,28 +490,28 @@ const EditProfile: React.FC = () => {
           </div>
 
           {/* Skills Section */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">Skills</h2>
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Skills</h2>
             <div className="space-y-4">
               <div className="flex gap-2 items-end mb-2">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Add a Skill</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Add a Skill</label>
                   <input
                     type="text"
                     name="newSkill"
                     value={formData.newSkill}
                     onChange={handleInputChange}
                     placeholder="e.g., React, Node.js, MongoDB"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-100"
                   />
                 </div>
                 <div className="w-1/3">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Proficiency</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Proficiency</label>
                   <select
                     name="newSkillProficiency"
                     value={formData.newSkillProficiency}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-100"
                   >
                     <option value="beginner">Beginner</option>
                     <option value="intermediate">Intermediate</option>
@@ -529,7 +529,7 @@ const EditProfile: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {formData.skills.map((skill, index) => (
-                  <span key={index} className="px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full flex items-center gap-1">
+                  <span key={index} className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 text-sm rounded-full flex items-center gap-1">
                     {skill.name} ({skill.proficiency})
                     <button type="button" onClick={() => handleSkillRemove(skill.name)} className="text-purple-500 hover:text-purple-700">
                       <X className="h-3 w-3" />
@@ -537,75 +537,75 @@ const EditProfile: React.FC = () => {
                   </span>
                 ))}
                 {formData.skills.length === 0 && (
-                  <p className="text-gray-500 text-sm">No skills added yet</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">No skills added yet</p>
                 )}
               </div>
             </div>
           </div>
 
           {/* Projects Section */}
-          <div ref={projectsSectionRef} className="bg-gray-50 p-4 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">
+          <div ref={projectsSectionRef} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
               {editingProject ? 'Edit Project' : 'Add a New Project'}
             </h2>
             
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Project Title*</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Project Title*</label>
                 <input
                   type="text"
                   name="title"
                   value={newProject.title}
                   onChange={handleNewProjectChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="Your project name"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Description</label>
                 <textarea
                   name="description"
                   value={newProject.description}
                   onChange={handleNewProjectChange}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="Describe your project"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Repository URL</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Repository URL</label>
                 <input
                   type="url"
                   name="repoUrl"
                   value={newProject.repoUrl || ''}
                   onChange={handleNewProjectChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="https://github.com/username/repo"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Live Demo URL</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Live Demo URL</label>
                 <input
                   type="url"
                   name="liveUrl"
                   value={newProject.liveUrl || ''}
                   onChange={handleNewProjectChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="https://your-project.com"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Technologies Used</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Technologies Used</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={newTechStack}
                     onChange={(e) => setNewTechStack(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-100"
                     placeholder="e.g., React, Node.js"
                   />
                   <button
@@ -618,7 +618,7 @@ const EditProfile: React.FC = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {newProject.techStack.map((tech, i) => (
-                    <span key={i} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full flex items-center gap-1">
+                    <span key={i} className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-sm rounded-full flex items-center gap-1">
                       {tech}
                       <button type="button" onClick={() => handleRemoveTechFromProject(tech)} className="text-blue-500 hover:text-blue-700">
                         <X className="h-3 w-3" />
@@ -649,7 +649,7 @@ const EditProfile: React.FC = () => {
                         liveUrl: ''
                       });
                     }}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700/50"
                   >
                     Cancel
                   </button>
@@ -657,7 +657,7 @@ const EditProfile: React.FC = () => {
               </div>
             </div>
             
-            <h3 className="text-lg font-medium mb-3 mt-6">Your Projects</h3>
+            <h3 className="text-lg font-medium mb-3 mt-6 text-gray-900 dark:text-gray-100">Your Projects</h3>
             {projects.length > 0 ? (
               <div className="space-y-3">
                 {projects.map((project) => (
@@ -681,7 +681,7 @@ const EditProfile: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-1 mt-1">{project.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-1 mt-1">{project.description}</p>
                     <div className="flex gap-2 mt-2">
                       {project.repoUrl && (
                         <a href={project.repoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 flex items-center gap-1">
@@ -698,58 +698,58 @@ const EditProfile: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">No projects added yet</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No projects added yet</p>
             )}
           </div>
 
           {/* Social Links Section */}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
             <h2 className="text-xl font-semibold mb-4">Social Links</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">GitHub</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">GitHub</label>
                 <input
                   type="url"
                   name="socialLinks.github"
                   value={formData.socialLinks.github}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="https://github.com/username"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">LinkedIn</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">LinkedIn</label>
                 <input
                   type="url"
                   name="socialLinks.linkedin"
                   value={formData.socialLinks.linkedin}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="https://linkedin.com/in/username"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Twitter</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Twitter</label>
                 <input
                   type="url"
                   name="socialLinks.twitter"
                   value={formData.socialLinks.twitter}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="https://twitter.com/username"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Portfolio</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Portfolio</label>
                 <input
                   type="url"
                   name="socialLinks.portfolio"
                   value={formData.socialLinks.portfolio}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="https://yourportfolio.com"
                 />
               </div>
@@ -772,7 +772,7 @@ const EditProfile: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/profile')}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700/50 transition-colors"
             >
               Cancel
             </button>

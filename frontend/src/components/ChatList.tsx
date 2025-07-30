@@ -45,7 +45,7 @@ const ChatList: React.FC<ChatListProps> = ({
   if (matches.length === 0) {
     return (
       <div className="text-center py-8">
-        <h3 className="text-lg font-medium text-card-foreground">No Matches Yet</h3>
+        <h3 className="text-lg font-medium text-foreground">No Matches Yet</h3>
         <p className="text-muted-foreground mt-2">
           Start swiping to find your next coding partner!
         </p>
@@ -62,7 +62,7 @@ const ChatList: React.FC<ChatListProps> = ({
         return (
           <div
             key={match.id}
-            className="bg-card rounded-lg p-4 hover:bg-accent/10 transition-colors"
+            className="bg-card rounded-lg p-4 hover:bg-accent/50 transition-colors border border-border"
           >
             <Link to={`/chat/${match.id}`} className="flex items-start space-x-4">
               {/* Avatar */}
@@ -86,7 +86,7 @@ const ChatList: React.FC<ChatListProps> = ({
               {/* Chat Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-card-foreground truncate">
+                  <h3 className="text-sm font-medium text-foreground truncate">
                     {otherUser.name}
                   </h3>
                   <span className="text-xs text-muted-foreground">
@@ -115,7 +115,7 @@ const ChatList: React.FC<ChatListProps> = ({
                       e.preventDefault();
                       onArchiveMatch(match.id);
                     }}
-                    className="text-xs text-muted-foreground hover:text-primary"
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
                   >
                     Archive
                   </button>
@@ -125,7 +125,7 @@ const ChatList: React.FC<ChatListProps> = ({
                       e.preventDefault();
                       onBlockMatch(match.id);
                     }}
-                    className="text-xs text-destructive hover:text-destructive/80"
+                    className="text-xs text-destructive hover:text-destructive/80 transition-colors"
                   >
                     Block
                   </button>
