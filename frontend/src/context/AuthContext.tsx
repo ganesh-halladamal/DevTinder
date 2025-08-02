@@ -22,7 +22,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, avatar?: string, projects?: any[]) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   loginWithGithub: () => void;
   loginWithGoogle: () => void;
@@ -81,20 +81,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, name: string, avatar?: string, projects?: any[]) => {
+  const register = async (email: string, password: string, name: string) => {
     try {
       console.log('Registering user:', { email, name }); // Don't log password
       const userData = {
         email,
         password,
-        name,
-        avatar,
-        projects
+        name
       };
-      
+       
       const response = await authAPI.register(userData);
       console.log('Registration response:', response.data);
-      
+       
       // Type check the response data
       const { token, user } = response.data as AuthResponse;
       localStorage.setItem('token', token);

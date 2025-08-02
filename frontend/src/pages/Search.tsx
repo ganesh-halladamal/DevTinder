@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { Heart, X, MapPin, Briefcase, BookOpen, RefreshCw } from 'lucide-react';
+import { Heart, X, MapPin, Briefcase, BookOpen, RefreshCw, User, Sparkles, Star, Zap } from 'lucide-react';
 import { formatAvatarUrl } from '../utils/imageUtils';
 import api from '../services/api';
+import ProfileViewModal from '../components/ProfileViewModal';
 
 interface User {
   _id: string;
@@ -28,6 +30,8 @@ const Search: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [networkError, setNetworkError] = useState<string | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | undefined>();
 
   useEffect(() => {
     fetchUsers();
@@ -160,11 +164,19 @@ const Search: React.FC = () => {
     fetchUsers();
   };
 
+  const handleViewProfile = (userId?: string) => {
+    setSelectedUserId(userId);
+    setShowProfileModal(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto mb-4"></div>
+          <div className="relative mx-auto mb-4 h-12 w-12">
+            <div className="absolute inset-0 rounded-full border-2 border-indigo-200 dark:border-indigo-800 opacity-30"></div>
+            <div className="absolute inset-0 animate-spin rounded-full border-b-2 border-indigo-600 dark:border-indigo-400 border-r-2 border-transparent"></div>
+          </div>
           <p className="text-gray-600 dark:text-gray-300">Loading potential matches...</p>
         </div>
       </div>
@@ -206,15 +218,23 @@ const Search: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">No users found</h2>
             <p className="text-gray-600 dark:text-gray-300 mb-4">
-              No new users to connect with right now. Check back later!
+              {networkError || 'No new users to connect with right now. Check back later!'}
             </p>
-            <button
-              onClick={handleRetry}
-              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </button>
+            <div className="space-y-4">
+              <button
+                onClick={handleRetry}
+                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </button>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                <p>Tip: If you just started the app, try running:</p>
+                <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs">
+                  npm run seed
+                </code>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -225,17 +245,20 @@ const Search: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 animate-fade-in">
             Find Your Perfect Match
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Discover developers who share your interests
+          <p className="text-gray-600 dark:text-gray-400 animate-fade-in delay-100">
+            Discover talented developers to collaborate with
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {users.map((user) => (
-            <div key={user._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+            <div
+              key={user._id}
+              className="group bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+            >
               <div className="w-full h-48 bg-gray-200 dark:bg-gray-700">
                 <img
                   src={formatAvatarUrl(user.avatar)}
@@ -258,6 +281,7 @@ const Search: React.FC = () => {
                     {user.jobRole}
                   </div>
                 )}
+                
 
                 {user.location && (
                   <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm mt-1">
@@ -273,51 +297,80 @@ const Search: React.FC = () => {
                 )}
 
                 {user.skills && user.skills.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {user.skills.slice(0, 3).map((skill, index) => (
-                      <span
+                      <motion.span
                         key={index}
-                        className="inline-block bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs px-2 py-1 rounded"
+                        className="inline-block bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100 dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30 text-indigo-800 dark:text-indigo-200 text-xs px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-700"
+                        whileHover={{ scale: 1.05, y: -1 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
                       >
                         {typeof skill === 'string' ? skill : skill.name}
-                      </span>
+                      </motion.span>
                     ))}
                   </div>
                 )}
 
                 <div className="mt-4 flex space-x-2">
-                  <button
+                  <motion.button
                     onClick={() => handleConnect(user._id)}
                     disabled={connecting === user._id}
-                    className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center"
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2.5 px-4 rounded-lg hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
                     {connecting === user._id ? (
                       <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                        </motion.div>
                         Connecting...
                       </>
                     ) : (
                       <>
-                        <Heart className="w-4 h-4 mr-2" />
+                        <motion.div
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          <Heart className="w-4 h-4 mr-2" fill="currentColor" />
+                        </motion.div>
                         Connect
                       </>
                     )}
-                  </button>
+                  </motion.button>
                   
                   <button
                     onClick={() => handleSkip(user._id)}
                     disabled={connecting === user._id}
-                    className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center"
+                    className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 text-white py-2 px-4 rounded-lg hover:from-red-600 hover:to-rose-700 dark:from-red-600 dark:to-rose-700 dark:hover:from-red-700 dark:hover:to-rose-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg group-hover:shadow-lg"
                   >
                     <X className="w-4 h-4 mr-2" />
                     Skip
                   </button>
                 </div>
+
+                <button
+                  onClick={() => handleViewProfile(user._id)}
+                  className="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 text-white py-2 px-4 rounded-lg transition-all duration-300 text-sm shadow-md hover:shadow-lg"
+                >
+                  View Profile
+                </button>
               </div>
             </div>
           ))}
         </div>
       </div>
+      
+      <ProfileViewModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        userId={selectedUserId}
+      />
     </div>
   );
 };

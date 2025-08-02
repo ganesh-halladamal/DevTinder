@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { usersAPI } from '../services/api';
-import { MapPin, Briefcase, Calendar, Github, Linkedin, Edit3, Settings, ExternalLink, Code, Plus, AlertCircle } from 'lucide-react';
+import { MapPin, Briefcase, Calendar, Github, Linkedin, Twitter, Globe, Edit3, Settings, ExternalLink, Code, Plus, AlertCircle } from 'lucide-react';
 
 interface Skill {
   name: string;
@@ -362,7 +362,19 @@ const Profile: React.FC = () => {
                   LinkedIn
                 </a>
               )}
-              {!user.socialLinks?.github && !user.socialLinks?.linkedin && (
+              {user.socialLinks?.twitter && (
+                <a href={user.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="flex items-center text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400">
+                  <Twitter className="h-5 w-5 mr-2" />
+                  Twitter
+                </a>
+              )}
+              {user.socialLinks?.portfolio && (
+                <a href={user.socialLinks.portfolio} target="_blank" rel="noopener noreferrer" className="flex items-center text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400">
+                  <Globe className="h-5 w-5 mr-2" />
+                  Portfolio
+                </a>
+              )}
+              {!user.socialLinks?.github && !user.socialLinks?.linkedin && !user.socialLinks?.twitter && !user.socialLinks?.portfolio && (
                 <p className="text-gray-500 dark:text-gray-400">No social links added</p>
               )}
             </div>

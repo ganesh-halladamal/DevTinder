@@ -21,7 +21,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, name, avatar, projects } = req.body;
+    const { email, password, name } = req.body;
 
     // Check if user already exists
     let user = await User.findOne({ email });
@@ -31,62 +31,11 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Handle avatar upload if provided
-    let avatarPath;
-    if (avatar && avatar.startsWith('data:image')) {
-      try {
-        console.log('Processing avatar image during registration...');
-        // Create a temporary ID for the file upload since we don't have a user ID yet
-        const tempId = new mongoose.Types.ObjectId();
-        avatarPath = await saveBase64Image(avatar, tempId);
-        console.log('Avatar saved successfully:', avatarPath);
-      } catch (error) {
-        console.error('Avatar upload error during registration:', error);
-        return res.status(400).json({
-          message: 'Error uploading profile image: ' + error.message
-        });
-      }
-    }
-
-    // Process projects if provided
-    let processedProjects = [];
-    if (projects && Array.isArray(projects)) {
-      processedProjects = await Promise.all(projects.map(async project => {
-        const { images, ...projectData } = project;
-        
-        // Handle project images if any
-        const processedImages = [];
-        if (images && Array.isArray(images)) {
-          for (const image of images) {
-            if (image && image.startsWith('data:image')) {
-              try {
-                const tempId = new mongoose.Types.ObjectId();
-                const imagePath = await saveBase64Image(image, tempId);
-                processedImages.push(imagePath);
-              } catch (error) {
-                console.error('Project image upload error:', error);
-                // Continue with other images if one fails
-              }
-            } else if (image) {
-              processedImages.push(image);
-            }
-          }
-        }
-
-        return {
-          ...projectData,
-          images: processedImages
-        };
-      }));
-    }
-
-    // Create new user with all data
+    // Create new user with basic data
     user = await User.create({
       email,
       password,
-      name,
-      avatar: avatarPath,
-      projects: processedProjects
+      name
     });
 
     // Generate token

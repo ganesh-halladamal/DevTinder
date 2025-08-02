@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { usersAPI } from '../services/api';
 import { formatAvatarUrl } from '../utils/imageUtils';
+import { Github, Linkedin, Twitter, Globe } from 'lucide-react';
 
 const ProfileView: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -98,6 +99,62 @@ const ProfileView: React.FC = () => {
           <p className="text-gray-700 dark:text-gray-300 mb-4">{user.bio || 'No bio provided'}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Member since {new Date(user.createdAt).toLocaleDateString()}</p>
         </div>
+
+        {user.socialLinks && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5">
+            <h2 className="text-xl font-bold mb-4 dark:text-white">Connect</h2>
+            <div className="flex flex-wrap gap-3">
+              {user.socialLinks.github && (
+                <a
+                  href={user.socialLinks.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  title="GitHub"
+                >
+                  <Github className="w-4 h-4" />
+                  <span className="text-gray-700 dark:text-gray-300">GitHub</span>
+                </a>
+              )}
+              {user.socialLinks.linkedin && (
+                <a
+                  href={user.socialLinks.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                  title="LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-blue-700 dark:text-blue-300">LinkedIn</span>
+                </a>
+              )}
+              {user.socialLinks.twitter && (
+                <a
+                  href={user.socialLinks.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 bg-sky-50 dark:bg-sky-900/30 rounded-lg text-sm hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors"
+                  title="Twitter"
+                >
+                  <Twitter className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                  <span className="text-sky-700 dark:text-sky-300">Twitter</span>
+                </a>
+              )}
+              {user.socialLinks.portfolio && (
+                <a
+                  href={user.socialLinks.portfolio}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/30 rounded-lg text-sm hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                  title="Portfolio"
+                >
+                  <Globe className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <span className="text-green-700 dark:text-green-300">Portfolio</span>
+                </a>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5">
           <h2 className="text-xl font-bold mb-4 dark:text-white">Skills</h2>

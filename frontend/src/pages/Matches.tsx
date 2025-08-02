@@ -104,7 +104,7 @@ const Matches: React.FC = () => {
             <Heart className="w-16 h-16 mx-auto mb-4 text-red-400" />
             <h2 className="text-xl font-semibold mb-2">Error Loading Matches</h2>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={fetchMatches}>
+            <Button onClick={fetchMatches} className="bg-indigo-600 hover:bg-indigo-700 text-white">
               Try Again
             </Button>
           </CardContent>
@@ -133,13 +133,13 @@ const Matches: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-4 justify-center">
-              <Button asChild>
+              <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white">
                 <Link to="/search">Find Matches</Link>
               </Button>
               <Button
                 variant="outline"
                 onClick={fetchMatches}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh
@@ -207,13 +207,13 @@ const Matches: React.FC = () => {
               )}
 
               <div className="flex gap-2 pt-4">
-                <Button className="flex-1" asChild>
+                <Button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white" asChild>
                   <Link to={`/chat/${match._id}`}>
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Message
                   </Link>
                 </Button>
-                <Button variant="outline" className="flex-1" asChild>
+                <Button variant="outline" className="flex-1 border-indigo-600 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700" asChild>
                   <Link to={`/profile/${match.displayUser?._id}`}>
                     View Profile
                   </Link>

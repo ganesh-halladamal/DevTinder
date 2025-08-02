@@ -1,7 +1,5 @@
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const { generateSampleUsers } = require('../utils/seedData');
-const User = require('../models/user');
 
 const connectDB = async () => {
   try {
@@ -13,16 +11,9 @@ const connectDB = async () => {
       await mongoose.connect(uri);
       console.log('Connected to MongoDB Atlas successfully');
       
-      // Check if we need to seed the database
-      const userCount = await User.countDocuments();
-      if (userCount === 0) {
-        console.log('No users found in the database. Seeding with dummy profiles...');
-        const users = await generateSampleUsers();
-        await User.insertMany(users);
-        console.log(`Successfully added ${users.length} dummy profiles to the database!`);
-      } else {
-        console.log(`Database already contains ${userCount} users.`);
-      }
+      // Check database stats without seeding
+      const userCount = await mongoose.connection.db.collection('users').countDocuments();
+      console.log(`Database contains ${userCount} users.`);
       
       return;
     } catch (atlasError) {
@@ -39,16 +30,10 @@ const connectDB = async () => {
     await mongoose.connect(memoryUri);
     console.log('Connected to MongoDB Memory Server');
     
-    // Check if we need to seed the database
-    const userCount = await User.countDocuments();
-    if (userCount === 0) {
-      console.log('No users found in the database. Seeding with dummy profiles...');
-      const users = await generateSampleUsers();
-      await User.insertMany(users);
-      console.log(`Successfully added ${users.length} dummy profiles to the database!`);
-    } else {
-      console.log(`Database already contains ${userCount} users.`);
-    }
+    // Check database stats without seeding
+    const userCount = await mongoose.connection.db.collection('users').countDocuments();
+    console.log(`Database contains ${userCount} users.`);
+    
   } catch (error) {
     console.error('MongoDB connection error:', error);
     console.error('Could not connect to any MongoDB instance. Exiting...');
@@ -57,4 +42,3 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
-
