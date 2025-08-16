@@ -1,34 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { notificationsAPI } from '../services/api';
 
 interface Notification {
-  id: string;
-  type: 'match' | 'message' | 'like' | 'superlike' | 'project_invite';
+  _id: string;
+  type: 'match' | 'message' | 'like' | 'superlike' | 'project_invite' | 'system';
   title: string;
   message: string;
-  timestamp: string;
+  createdAt: string;
   read: boolean;
-  fromUser?: {
-    id: string;
+  sender?: {
+    _id: string;
     name: string;
     avatar: string;
   };
-  actionUrl?: string;
+  data?: {
+    actionUrl?: string;
+    conversationId?: string;
+    matchId?: string;
+    projectId?: string;
+  };
 }
 
 const Notifications: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCountState, setUnreadCountState] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [page]);
 
   const loadNotifications = async () => {
     try {
-      // For now, create a simple empty state for notifications
-      // In a real implementation, this would connect to a notifications API
-      setNotifications([]);
+      const response = await notificationsAPI.getNotifications({ page, limit: 20 });
+      const data = response.data as {
+        notifications: Notification[];
+        unreadCount: number;
+        pagination: {
+          page: number;
+          pages: number;
+        }
+      };
+      
+      if (page === 1) {
+        setNotifications(data.notifications);
+      } else {
+        setNotifications(prev => [...prev, ...data.notifications]);
+      }
+      
+      setUnreadCountState(data.unreadCount || 0);
+      setHasMore(data.pagination.page < data.pagination.pages);
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to load notifications:', error);
@@ -37,19 +61,42 @@ const Notifications: React.FC = () => {
   };
 
   const markAsRead = async (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === notificationId ? { ...notif, read: true } : notif
-      )
-    );
+    try {
+      await notificationsAPI.markAsRead(notificationId);
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif._id === notificationId ? { ...notif, read: true } : notif
+        )
+      );
+      setUnreadCountState(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   };
 
   const markAllAsRead = async () => {
-    setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+    try {
+      await notificationsAPI.markAllAsRead();
+      setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+      setUnreadCountState(0);
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
   };
 
   const deleteNotification = async (notificationId: string) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+    try {
+      await notificationsAPI.deleteNotification(notificationId);
+      setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+    }
+  };
+
+  const loadMore = () => {
+    if (hasMore && !isLoading) {
+      setPage(prev => prev + 1);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -74,7 +121,7 @@ const Notifications: React.FC = () => {
     return date.toLocaleDateString();
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const displayUnreadCount = notifications.filter(n => !n.read).length;
 
   if (isLoading) {
     return (
@@ -90,7 +137,7 @@ const Notifications: React.FC = () => {
     <div className="container mx-auto py-8 px-4 max-w-2xl">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Notifications</h1>
-        {unreadCount > 0 && (
+        {unreadCountState > 0 && (
           <button
             onClick={markAllAsRead}
             className="text-indigo-600 hover:text-indigo-700 text-sm"
@@ -110,7 +157,7 @@ const Notifications: React.FC = () => {
         <div className="space-y-3">
           {notifications.map(notification => (
             <div
-              key={notification.id}
+              key={notification._id}
               className={`bg-white shadow rounded-lg p-4 flex items-start space-x-4 ${
                 !notification.read ? 'border-l-4 border-indigo-500' : ''
               }`}
@@ -134,11 +181,11 @@ const Notifications: React.FC = () => {
                   
                   <div className="flex items-center space-x-2">
                     <span className="text-xs text-gray-500">
-                      {formatTime(notification.timestamp)}
+                      {formatTime(notification.createdAt)}
                     </span>
                     
                     <button
-                      onClick={() => deleteNotification(notification.id)}
+                      onClick={() => deleteNotification(notification._id)}
                       className="text-gray-400 hover:text-gray-600"
                     >
                       ×
@@ -147,23 +194,23 @@ const Notifications: React.FC = () => {
                 </div>
                 
                 <div className="mt-2 flex items-center space-x-4">
-                  {notification.fromUser && (
+                  {notification.sender && (
                     <div className="flex items-center space-x-2">
                       <img
-                        src={notification.fromUser.avatar}
-                        alt={notification.fromUser.name}
+                        src={notification.sender.avatar || '/default-avatar.png'}
+                        alt={notification.sender.name}
                         className="w-6 h-6 rounded-full"
                       />
                       <span className="text-xs text-gray-600">
-                        {notification.fromUser.name}
+                        {notification.sender.name}
                       </span>
                     </div>
                   )}
                   
-                  {notification.actionUrl && (
+                  {notification.data?.actionUrl && (
                     <Link
-                      to={notification.actionUrl}
-                      onClick={() => markAsRead(notification.id)}
+                      to={notification.data.actionUrl}
+                      onClick={() => markAsRead(notification._id)}
                       className="text-xs text-indigo-600 hover:text-indigo-700"
                     >
                       View →
@@ -172,7 +219,7 @@ const Notifications: React.FC = () => {
                   
                   {!notification.read && (
                     <button
-                      onClick={() => markAsRead(notification.id)}
+                      onClick={() => markAsRead(notification._id)}
                       className="text-xs text-gray-600 hover:text-gray-700"
                     >
                       Mark as read
@@ -182,6 +229,18 @@ const Notifications: React.FC = () => {
               </div>
             </div>
           ))}
+          
+          {hasMore && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={loadMore}
+                disabled={isLoading}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {isLoading ? 'Loading...' : 'Load More'}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

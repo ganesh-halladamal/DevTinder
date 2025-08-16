@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-  match: {
+  conversationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Match',
     required: true
@@ -11,7 +11,12 @@ const messageSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  content: {
+  receiver: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  text: {
     type: String,
     required: true
   },
@@ -25,16 +30,13 @@ const messageSchema = new mongoose.Schema({
     preview: String,
     language: String // for code snippets
   }],
-  readBy: [{
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    readAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
+  read: {
+    type: Boolean,
+    default: false
+  },
+  readAt: {
+    type: Date
+  },
   status: {
     type: String,
     enum: ['sent', 'delivered', 'read'],
@@ -45,15 +47,15 @@ const messageSchema = new mongoose.Schema({
 });
 
 // Index for efficient querying
-messageSchema.index({ match: 1, createdAt: -1 });
+messageSchema.index({ conversationId: 1, createdAt: -1 });
+messageSchema.index({ sender: 1, createdAt: -1 });
+messageSchema.index({ receiver: 1, createdAt: -1 });
 
-// Method to mark message as read by a user
-messageSchema.methods.markAsRead = async function(userId) {
-  if (!this.readBy.some(read => read.user.toString() === userId.toString())) {
-    this.readBy.push({
-      user: userId,
-      readAt: new Date()
-    });
+// Method to mark message as read
+messageSchema.methods.markAsRead = async function() {
+  if (!this.read) {
+    this.read = true;
+    this.readAt = new Date();
     this.status = 'read';
     await this.save();
   }
@@ -64,14 +66,68 @@ messageSchema.methods.markAsRead = async function(userId) {
 messageSchema.methods.getMessageDetails = function() {
   return {
     id: this._id,
-    match: this.match,
+    conversationId: this.conversationId,
     sender: this.sender,
-    content: this.content,
+    receiver: this.receiver,
+    text: this.text,
     attachments: this.attachments,
     status: this.status,
-    readBy: this.readBy,
+    read: this.read,
+    readAt: this.readAt,
     createdAt: this.createdAt
   };
+};
+
+// Static method to get unread messages count for a user
+messageSchema.statics.getUnreadCount = async function(userId) {
+  return this.countDocuments({
+    receiver: userId,
+    read: false
+  });
+};
+
+// Static method to get unread messages count per conversation for a user
+messageSchema.statics.getUnreadCountPerConversation = async function(userId) {
+  const pipeline = [
+    {
+      $match: {
+        receiver: userId,
+        read: false
+      }
+    },
+    {
+      $group: {
+        _id: "$conversationId",
+        count: { $sum: 1 }
+      }
+    }
+  ];
+  
+  return this.aggregate(pipeline);
+};
+
+// Static method to get message preview for a conversation
+messageSchema.statics.getMessagePreview = async function(conversationId, limit = 3) {
+  return this.find({ conversationId })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .populate('sender', 'name avatar')
+    .select('text createdAt sender');
+};
+
+// Static method to get messages between two users
+messageSchema.statics.getConversation = async function(user1, user2, limit = 50, skip = 0) {
+  return this.find({
+    $or: [
+      { sender: user1, receiver: user2 },
+      { sender: user2, receiver: user1 }
+    ]
+  })
+  .sort({ createdAt: -1 })
+  .skip(skip)
+  .limit(limit)
+  .populate('sender', 'name avatar')
+  .populate('receiver', 'name avatar');
 };
 
 const Message = mongoose.model('Message', messageSchema);

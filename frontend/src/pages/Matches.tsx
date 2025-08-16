@@ -4,7 +4,8 @@ import api from '../services/api';
 import { formatAvatarUrl } from '../utils/imageUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { MessageCircle, MapPin, Briefcase, Heart, Bookmark, X, RefreshCw } from 'lucide-react';
+import { MessageCircle, MapPin, Briefcase, Heart, Bookmark, RefreshCw, Bookmark as BookmarkIcon } from 'lucide-react';
+import { useSocket } from '../hooks/useSocket';
 
 interface Match {
   _id: string;
@@ -20,54 +21,188 @@ interface Match {
   isBookmarked: boolean;
 }
 
+
+
 const Matches: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Initialize socket connection
+  const { socket, isConnected } = useSocket();
+
   useEffect(() => {
     fetchMatches();
   }, []);
+
+  // Set up real-time match listener
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMatchCreated = async (data: {
+      matchId: string;
+      user: {
+        _id: string;
+        name: string;
+        avatar?: string;
+        bio?: string;
+        jobRole?: string;
+        location?: string;
+        skills?: Array<{
+          name: string;
+          proficiency: string;
+        }>;
+      };
+      message: string;
+    }) => {
+      console.log('New match received on Matches page:', data);
+      
+      // Use the complete profile data from socket (no need to fetch from API)
+      const newMatch: Match = {
+        _id: data.matchId,
+        displayUser: {
+          _id: data.user._id,
+          name: data.user.name,
+          avatar: data.user.avatar || '',
+          bio: data.user.bio || '',
+          jobRole: data.user.jobRole || 'Developer',
+          location: data.user.location || ''
+        },
+        matchScore: 0, // Default score for real-time matches
+        isBookmarked: false // Default bookmark status
+      };
+
+      // Add the new match to the beginning of the list
+      setMatches(prevMatches => {
+        // Check if match already exists to avoid duplicates
+        const exists = prevMatches.some(match => match._id === newMatch._id);
+        if (exists) {
+          console.log('Match already exists in list, skipping duplicate');
+          return prevMatches;
+        }
+        console.log('Adding new match to list:', newMatch.displayUser.name);
+        return [newMatch, ...prevMatches];
+      });
+
+      // Clear any "no matches" error state
+      if (error && error.includes('No matches found')) {
+        setError(null);
+      }
+    };
+
+    console.log('Setting up matchCreated listener on Matches page');
+    socket.on('matchCreated', handleMatchCreated);
+
+    return () => {
+      console.log('Cleaning up matchCreated listener on Matches page');
+      socket.off('matchCreated', handleMatchCreated);
+    };
+  }, [socket, error]);
 
   const fetchMatches = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get('/matches');
-      console.log('Matches response:', response.data);
       
-      const matchesData = (response.data as any)?.matches || [];
+      console.log('Fetching matches...');
+      console.log('API URL:', import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
       
-      // Ensure we have valid matches array
-      const validMatches = Array.isArray(matchesData) ? matchesData : [];
+      const response = await api.get('/matches/my-matches');
+      console.log('Raw matches response:', response);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+      
+      const matchesData = response.data;
+      console.log('Matches data type:', typeof matchesData);
+      console.log('Matches data:', JSON.stringify(matchesData, null, 2));
+      
+      if (!Array.isArray(matchesData)) {
+        console.error('Expected array but got:', typeof matchesData);
+        throw new Error(`Invalid matches data format: expected array but got ${typeof matchesData}`);
+      }
+      
+      console.log(`Processing ${matchesData.length} matches...`);
+      
+      const validMatches = matchesData.filter((match, index) => {
+        console.log(`Processing match ${index + 1}:`, match);
+        
+        if (!match.displayUser) {
+          console.warn(`Match ${index + 1}: Missing displayUser`, match);
+          return false;
+        }
+        
+        if (!match.displayUser._id) {
+          console.warn(`Match ${index + 1}: Missing displayUser._id`, match.displayUser);
+          return false;
+        }
+        
+        console.log(`Match ${index + 1}: Valid - ${match.displayUser.name}`);
+        return true;
+      });
+      
+      console.log(`Found ${validMatches.length} valid matches out of ${matchesData.length} total`);
       setMatches(validMatches);
       
       if (validMatches.length === 0) {
-        console.log('No matches found - this could be due to:');
-        console.log('1. No users in the database');
-        console.log('2. No matches created between users');
-        console.log('3. All matches have status other than "active"');
-        console.log('4. Database connection issues');
+        if (matchesData.length === 0) {
+          setError('No matches found yet. Keep swiping to find your perfect match!');
+          console.log('Debug: No data returned from server - user has no matches');
+        } else {
+          setError('Error: Found matches in database but they have invalid format. Please check console for details.');
+          console.error('Debug: Found matches but all are invalid format:');
+          matchesData.forEach((match, index) => {
+            console.error(`Invalid match ${index + 1}:`, match);
+          });
+        }
+      } else {
+        setError(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching matches:', error);
-      setError('Failed to load matches. Please try again.');
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
+      
+      let errorMessage = 'Failed to load matches. Please try again.';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleArchiveMatch = async (matchId: string) => {
+  const toggleBookmark = async (matchId: string) => {
     try {
-      await api.put(`/matches/${matchId}/status`, { status: 'archived' });
-      setMatches(prev => prev.filter(match => match._id !== matchId));
+      const response = await api.put(`/matches/${matchId}/bookmark`);
+      console.log('Bookmark toggle response:', response.data);
+      
+      // Update the local state
+      setMatches(prevMatches =>
+        prevMatches.map(match =>
+          match._id === matchId
+            ? { ...match, isBookmarked: (response.data as any).isBookmarked }
+            : match
+        )
+      );
     } catch (error) {
-      console.error('Error archiving match:', error);
-      alert('Failed to archive match. Please try again.');
+      console.error('Error toggling bookmark:', error);
     }
   };
-
-  // Bookmark functionality removed as requested
 
   if (loading) {
     return (
@@ -102,7 +237,7 @@ const Matches: React.FC = () => {
         <Card className="text-center py-12">
           <CardContent>
             <Heart className="w-16 h-16 mx-auto mb-4 text-red-400" />
-            <h2 className="text-xl font-semibold mb-2">Error Loading Matches</h2>
+            <h2 className="text-xl font-semibold mb-2"></h2>
             <p className="text-muted-foreground mb-4">{error}</p>
             <Button onClick={fetchMatches} className="bg-indigo-600 hover:bg-indigo-700 text-white">
               Try Again
@@ -155,7 +290,20 @@ const Matches: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Your Matches</h1>
-        <p className="text-muted-foreground">{matches.length} {matches.length === 1 ? 'match' : 'matches'} found</p>
+        <div className="flex items-center gap-4">
+          <p className="text-muted-foreground">{matches.length} {matches.length === 1 ? 'match' : 'matches'} found</p>
+          {isConnected ? (
+            <div className="flex items-center gap-2 text-green-600 text-sm">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              Real-time updates enabled
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-yellow-600 text-sm">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+              Connecting...
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -192,10 +340,14 @@ const Matches: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleArchiveMatch(match._id)}
-                    className="text-red-500"
+                    onClick={() => toggleBookmark(match._id)}
+                    className="p-1 h-8 w-8"
                   >
-                    <X className="h-4 w-4" />
+                    {match.isBookmarked ? (
+                      <Bookmark className="h-4 w-4 text-yellow-500 fill-current" />
+                    ) : (
+                      <BookmarkIcon className="h-4 w-4 text-gray-400 hover:text-yellow-500" />
+                    )}
                   </Button>
                 </div>
               </div>

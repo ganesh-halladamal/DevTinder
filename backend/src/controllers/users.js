@@ -54,15 +54,15 @@ exports.getProfile = async (req, res) => {
     const userProfile = user.toObject();
     userProfile._id = user._id;
 
-    // Calculate stats - count only active matches for consistency with matches page
-    const activeMatchesCount = await Match.countDocuments({
+    // Calculate stats - count only matched matches for consistency with matches page
+    const matchedMatchesCount = await Match.countDocuments({
       users: req.params.id,
-      status: 'active'
+      status: 'matched'
     });
     
     const stats = {
       projects: userProfile.projects?.length || 0,
-      matches: activeMatchesCount
+      matches: matchedMatchesCount
     };
 
     console.log(`User found: ${user.name}`);
@@ -203,15 +203,15 @@ exports.updateProfile = async (req, res) => {
       projectsCount: user.projects?.length
     });
 
-    // Calculate stats - count only active matches for consistency with matches page
-    const activeMatchesCount = await Match.countDocuments({
+    // Calculate stats - count only matched matches for consistency with matches page
+    const matchedMatchesCount = await Match.countDocuments({
       users: req.user.id,
-      status: 'active'
+      status: 'matched'
     });
     
     const stats = {
       projects: user.projects?.length || 0,
-      matches: activeMatchesCount
+      matches: matchedMatchesCount
     };
 
     console.log(`Profile updated successfully for ${user.name}`);
@@ -303,8 +303,8 @@ exports.likeUser = async (req, res) => {
       });
       
       if (existingMatch) {
-        // Update existing pending match to active
-        existingMatch.status = 'active';
+        // Update existing pending match to matched
+        existingMatch.status = 'matched';
         await existingMatch.save();
       } else {
         // Calculate common interests and skills
@@ -346,7 +346,7 @@ exports.likeUser = async (req, res) => {
           commonSkills,
           primarySkills,
           projectInterests,
-          status: 'active'
+          status: 'matched'
         });
 
         // Populate match details
@@ -359,17 +359,41 @@ exports.likeUser = async (req, res) => {
           }
         });
 
-        // Emit socket event for new match
+        // Emit socket event for new match with complete profile data
         const io = req.app.get('socketio');
         if (io) {
-          io.emit('new_match', {
+          // Emit to both users individually with proper profile data
+          const userProfileForLikedUser = {
+            _id: user._id,
+            name: user.name,
+            avatar: user.avatar,
+            bio: user.bio,
+            location: user.location,
+            jobRole: user.jobRole,
+            skills: user.skills
+          };
+
+          const likedUserProfileForUser = {
+            _id: likedUser._id,
+            name: likedUser.name,
+            avatar: likedUser.avatar,
+            bio: likedUser.bio,
+            location: likedUser.location,
+            jobRole: likedUser.jobRole,
+            skills: likedUser.skills
+          };
+
+          // Emit matchCreated event (consistent with matches controller)
+          io.to(user._id.toString()).emit('matchCreated', {
             matchId: newMatch._id,
-            users: newMatch.users,
-            matchScore: newMatch.matchScore,
-            commonInterests: newMatch.commonInterests,
-            commonSkills: newMatch.commonSkills,
-            primarySkills: newMatch.primarySkills,
-            projectInterests: newMatch.projectInterests
+            user: likedUserProfileForUser,
+            message: `You matched with ${likedUser.name}!`
+          });
+          
+          io.to(likedUser._id.toString()).emit('matchCreated', {
+            matchId: newMatch._id,
+            user: userProfileForLikedUser,
+            message: `You matched with ${user.name}!`
           });
         }
       }

@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import MatchNotificationContainer from './components/MatchNotificationContainer';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -29,7 +30,12 @@ const App = () => {
 
       {/* Protected routes */}
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-        <Route element={<Layout />}>
+        <Route element={
+          <>
+            <Layout />
+            {isAuthenticated && <MatchNotificationContainer />}
+          </>
+        }>
           <Route path="/" element={<Home />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:userId" element={<ProfileView />} />

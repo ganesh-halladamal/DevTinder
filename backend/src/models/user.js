@@ -96,7 +96,7 @@ const userSchema = new mongoose.Schema({
   },
   matches: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'Match'
   }],
   likes: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -106,10 +106,49 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  blockedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  unreadMessages: {
+    type: Number,
+    default: 0
+  },
   role: {
     type: String,
     enum: ['user', 'admin'],
     default: 'user'
+  },
+  // New fields for enhanced authentication
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: {
+    type: String
+  },
+  verificationTokenExpires: {
+    type: Date
+  },
+  resetPasswordToken: {
+    type: String
+  },
+  resetPasswordExpires: {
+    type: Date
+  },
+  lastActive: {
+    type: Date
+  },
+  loginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date
   }
 }, {
   timestamps: true
@@ -149,7 +188,64 @@ userSchema.methods.getPublicProfile = function() {
   delete userObject.github;
   delete userObject.google;
   delete userObject.dislikes;
+  delete userObject.verificationToken;
+  delete userObject.verificationTokenExpires;
+  delete userObject.resetPasswordToken;
+  delete userObject.resetPasswordExpires;
   return userObject;
+};
+
+// Method to check if account is locked
+userSchema.methods.isLocked = function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+};
+
+// Method to handle failed login attempts
+userSchema.methods.incLoginAttempts = function() {
+  // If account is already locked and lock has expired, reset
+  if (this.lockUntil && this.lockUntil <= Date.now()) {
+    return this.updateOne({
+      $unset: { loginAttempts: 1, lockUntil: 1 }
+    });
+  }
+  
+  const updates = { $inc: { loginAttempts: 1 } };
+  
+  // Lock account if max attempts reached and not already locked
+  if (this.loginAttempts + 1 >= 5 && !this.isLocked()) {
+    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // Lock for 2 hours
+  }
+  
+  return this.updateOne(updates);
+};
+
+// Method to reset login attempts on successful login
+userSchema.methods.resetLoginAttempts = function() {
+  return this.updateOne({
+    $unset: { loginAttempts: 1, lockUntil: 1 }
+  });
+};
+
+// Method to generate email verification token
+userSchema.methods.generateVerificationToken = function() {
+  const token = Math.random().toString(36).substring(2, 15) +
+                Math.random().toString(36).substring(2, 15);
+  
+  this.verificationToken = token;
+  this.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  
+  return this.save();
+};
+
+// Method to generate password reset token
+userSchema.methods.generatePasswordResetToken = function() {
+  const token = Math.random().toString(36).substring(2, 15) +
+                Math.random().toString(36).substring(2, 15);
+  
+  this.resetPasswordToken = token;
+  this.resetPasswordExpires = Date.now() + 1 * 60 * 60 * 1000; // 1 hour
+  
+  return this.save();
 };
 
 const User = mongoose.model('User', userSchema);

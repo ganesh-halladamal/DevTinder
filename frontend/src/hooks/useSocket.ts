@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { io, Socket as SocketType } from 'socket.io-client';
 import { useAuth } from './useAuth';
 import socketService from '../services/socket';
+import type { Socket } from '../types/socket.io-client';
 
 interface UseSocketOptions {
   onConnect?: () => void;
@@ -10,7 +10,7 @@ interface UseSocketOptions {
 
 export const useSocket = (options: UseSocketOptions = {}) => {
   const { user } = useAuth();
-  const socketRef = useRef<SocketType | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
@@ -51,22 +51,32 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     };
   }, [user, options.onConnect, options.onDisconnect]);
 
-  const sendMessage = useCallback((matchId: string, content: string, attachments: any[] = []) => {
+  const sendMessage = useCallback((conversationId: string, text: string, attachments: any[] = []) => {
     if (!socketRef.current) {
       console.error('Socket not connected');
       return;
     }
-    socketRef.current.emit('private_message', { matchId, content, attachments });
+    socketRef.current.emit('send_message', { conversationId, text, attachments });
   }, []);
 
-  const sendTypingStart = useCallback((matchId: string) => {
+  const sendTypingStart = useCallback((conversationId: string) => {
     if (!socketRef.current) return;
-    socketRef.current.emit('typing_start', matchId);
+    socketRef.current.emit('typing_start', conversationId);
   }, []);
 
-  const sendTypingStop = useCallback((matchId: string) => {
+  const sendTypingStop = useCallback((conversationId: string) => {
     if (!socketRef.current) return;
-    socketRef.current.emit('typing_stop', matchId);
+    socketRef.current.emit('typing_stop', conversationId);
+  }, []);
+
+  const joinConversation = useCallback((conversationId: string) => {
+    if (!socketRef.current) return;
+    socketRef.current.emit('join_conversation', conversationId);
+  }, []);
+
+  const markMessagesAsRead = useCallback((conversationId: string) => {
+    if (!socketRef.current) return;
+    socketRef.current.emit('mark_messages_read', conversationId);
   }, []);
 
   return {

@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const { createDatabaseIndexes } = require('../utils/createIndexes');
 
 const connectDB = async () => {
   try {
@@ -8,12 +9,20 @@ const connectDB = async () => {
       const uri = process.env.MONGODB_URI || 'mongodb+srv://codebotnetgh:AMtfmJYPjAokomd9@devtinder.xrgga09.mongodb.net/';
       console.log("Connecting to MongoDB Atlas:", uri);
       
-      await mongoose.connect(uri);
+      await mongoose.connect(uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000
+      });
       console.log('Connected to MongoDB Atlas successfully');
       
       // Check database stats without seeding
       const userCount = await mongoose.connection.db.collection('users').countDocuments();
       console.log(`Database contains ${userCount} users.`);
+      
+      // Create database indexes for performance
+      await createDatabaseIndexes();
       
       return;
     } catch (atlasError) {
@@ -33,6 +42,9 @@ const connectDB = async () => {
     // Check database stats without seeding
     const userCount = await mongoose.connection.db.collection('users').countDocuments();
     console.log(`Database contains ${userCount} users.`);
+    
+    // Create database indexes for performance
+    await createDatabaseIndexes();
     
   } catch (error) {
     console.error('MongoDB connection error:', error);

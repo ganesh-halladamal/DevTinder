@@ -119,13 +119,19 @@ const usersAPI = {
 // Matches API
 const matchesAPI = {
   getMatches: async () => {
-    return api.get('/matches');
+    return api.get('/matches/my-matches');
   },
   getMatchDetails: async (matchId: string) => {
     return api.get(`/matches/${matchId}`);
   },
-  createMatch: async (userId: string) => {
-    return api.post('/matches', { targetUserId: userId });
+  getPotentialMatches: async () => {
+    return api.get('/matches/potential');
+  },
+  likeUser: async (userId: string) => {
+    return api.post(`/matches/like/${userId}`);
+  },
+  dislikeUser: async (userId: string) => {
+    return api.post(`/matches/dislike/${userId}`);
   },
   rejectUser: async (userId: string) => {
     return api.post('/matches/reject', { userId });
@@ -140,15 +146,26 @@ const matchesAPI = {
 
 // Messages API
 const messagesAPI = {
-  getMessages: async (matchId: string) => {
-    return api.get(`/messages/${matchId}`);
+  getConversations: async () => {
+    return api.get('/messages/conversations');
   },
-  sendMessage: async (matchId: string, content: string, attachments: any[] = []) => {
-    return api.post(`/messages/${matchId}`, { content, attachments });
+  getOrCreateConversation: async (userId: string) => {
+    return api.get(`/messages/conversation/${userId}`);
   },
-  // Add markAsRead function
-  markAsRead: async (matchId: string) => {
-    return api.post(`/messages/${matchId}/read`);
+  getMessages: async (conversationId: string) => {
+    return api.get(`/messages/${conversationId}`);
+  },
+  getMessagePreview: async (conversationId: string, limit = 3) => {
+    return api.get(`/messages/${conversationId}/preview`, { params: { limit } });
+  },
+  sendMessage: async (conversationId: string, text: string, attachments: any[] = []) => {
+    return api.post(`/messages/${conversationId}`, { text, attachments });
+  },
+  markAsRead: async (conversationId: string) => {
+    return api.post(`/messages/${conversationId}/read`);
+  },
+  getUnreadCounts: async () => {
+    return api.get('/messages/unread/counts');
   }
 };
 
@@ -181,5 +198,24 @@ const settingsAPI = {
   }
 };
 
-export { authAPI, usersAPI, matchesAPI, messagesAPI, projectsAPI, settingsAPI };
+// Notifications API
+const notificationsAPI = {
+  getNotifications: async (params?: { page?: number; limit?: number; unreadOnly?: boolean }) => {
+    return api.get('/notifications', { params });
+  },
+  getUnreadCount: async () => {
+    return api.get('/notifications/unread-count');
+  },
+  markAsRead: async (notificationId: string) => {
+    return api.put(`/notifications/${notificationId}/read`);
+  },
+  markAllAsRead: async () => {
+    return api.put('/notifications/read-all');
+  },
+  deleteNotification: async (notificationId: string) => {
+    return api.delete(`/notifications/${notificationId}`);
+  }
+};
+
+export { authAPI, usersAPI, matchesAPI, messagesAPI, projectsAPI, settingsAPI, notificationsAPI };
 export default api;

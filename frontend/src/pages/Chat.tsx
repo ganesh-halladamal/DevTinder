@@ -1,19 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+// import { useChat } from '../hooks/useChat';
 import socketService from '../services/socket';
 import { messagesAPI, matchesAPI, API_URL } from '../services/api';
 
 interface Message {
   _id: string;
+  conversationId: string;
+  text: string;
   sender: {
     _id: string;
     name: string;
     avatar?: string;
   };
-  content: string;
+  receiver: {
+    _id: string;
+    name: string;
+    avatar?: string;
+  };
+  attachments: Array<{
+    type: 'image' | 'link' | 'code';
+    url: string;
+    preview?: string;
+    language?: string;
+  }>;
   createdAt: string;
   status: 'sent' | 'delivered' | 'read';
+  read: boolean;
 }
 
 interface ChatPartner {
@@ -31,17 +45,25 @@ interface MatchUser {
   email?: string;
 }
 
-interface Match {
-  _id: string;
-  users: MatchUser[];
-  matchScore: number;
-  status: string;
-  lastMessage?: any;
-}
+// interface Match {
+//   _id: string;
+//   users: MatchUser[];
+//   matchScore: number;
+//   status: string;
+//   lastMessage?: any;
+// }
 
 // Response interfaces for TypeScript type safety
 interface MatchResponse {
-  match: Match;
+  displayUser: {
+    _id: string;
+    name: string;
+    avatar?: string;
+    bio?: string;
+    location?: string;
+    jobRole?: string;
+    skills?: any[];
+  };
 }
 
 interface MessagesResponse {
@@ -56,6 +78,15 @@ interface MessagesResponse {
 
 interface MessageResponse {
   message: Message;
+}
+
+interface ConversationResponse {
+  conversation: {
+    _id: string;
+    members: MatchUser[];
+    lastMessage?: Message;
+    lastUpdated: string;
+  };
 }
 
 // Function to format avatar URL correctly
@@ -85,6 +116,7 @@ const Chat: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [partner, setPartner] = useState<ChatPartner | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -105,32 +137,35 @@ const Chat: React.FC = () => {
         
         if (matchResponse.data) {
           const matchData = matchResponse.data as MatchResponse;
-          if (matchData.match) {
-            // Find the other user in the match
-            const otherUser = matchData.match.users.find(u => u._id !== user.id);
+          if (matchData.displayUser) {
+            // Get the other user from the match display data
+            const otherUser = matchData.displayUser;
             
-            if (otherUser) {
-              setPartner({
-                _id: otherUser._id,
-                name: otherUser.name,
-                avatar: formatAvatarUrl(otherUser.avatar),
-                status: 'offline' // Default status
-              });
+            setPartner({
+              _id: otherUser._id,
+              name: otherUser.name,
+              avatar: formatAvatarUrl(otherUser.avatar),
+              status: 'offline' // Default status
+            });
+            
+            // Get or create conversation
+            const conversationResponse = await messagesAPI.getOrCreateConversation(otherUser._id);
+            if (conversationResponse.data) {
+              const conversationData = conversationResponse.data as ConversationResponse;
+              setConversationId(conversationData.conversation._id);
               
               // Now load messages
-              const messagesResponse = await messagesAPI.getMessages(matchId);
+              const messagesResponse = await messagesAPI.getMessages(conversationData.conversation._id);
               if (messagesResponse.data) {
                 const messagesData = messagesResponse.data as MessagesResponse;
                 setMessages(messagesData.messages || []);
               }
 
-              // Join match room for socket events
+              // Join conversation room for socket events
               if (socket && socket.connected) {
-                socket.emit('join_match', matchId);
-                console.log('Joined match room:', matchId);
+                socketService.joinConversation(conversationData.conversation._id);
+                console.log('Joined conversation room:', conversationData.conversation._id);
               }
-            } else {
-              setError('Could not identify chat partner');
             }
           } else {
             setError('Match details not found');
@@ -156,8 +191,8 @@ const Chat: React.FC = () => {
         setMessages((prevMessages) => [...prevMessages, newMessage]);
         
         // Mark message as read
-        if (newMessage.sender._id !== user.id) {
-          messagesAPI.markAsRead(matchId).catch(console.error);
+        if (newMessage.sender._id !== user.id && conversationId) {
+          messagesAPI.markAsRead(conversationId).catch(console.error);
         }
       };
 
@@ -167,12 +202,12 @@ const Chat: React.FC = () => {
         }
       };
       
-      socket.on(`message:${matchId}`, handleNewMessage);
+      socket.on('receiveMessage', handleNewMessage);
       socket.on('user_status', handleUserStatus);
       
       // Clean up
       return () => {
-        socket.off(`message:${matchId}`, handleNewMessage);
+        socket.off('receiveMessage', handleNewMessage);
         socket.off('user_status', handleUserStatus);
       };
     }
@@ -187,31 +222,41 @@ const Chat: React.FC = () => {
       // Add message to UI immediately for better UX
       const tempMessage: Message = {
         _id: `temp-${Date.now()}`,
+        conversationId: conversationId || '',
         sender: {
           _id: user.id || '',
           name: user.name || 'Unknown',
           avatar: formatAvatarUrl(user.avatar || '')
         },
-        content: inputMessage.trim(),
+        receiver: {
+          _id: partner?._id || '',
+          name: partner?.name || 'Unknown',
+          avatar: partner?.avatar || ''
+        },
+        text: inputMessage.trim(),
+        attachments: [],
         createdAt: new Date().toISOString(),
-        status: 'sent'
+        status: 'sent',
+        read: false
       };
       
       setMessages((prevMessages) => [...prevMessages, tempMessage]);
       setInputMessage('');
       
       // Send to API
-      const response = await messagesAPI.sendMessage(matchId, inputMessage.trim());
-      
-      // Replace temp message with the real one from the server
-      if (response.data) {
-        const messageData = response.data as MessageResponse;
-        if (messageData.message) {
-          setMessages((prevMessages) => 
-            prevMessages.map(msg => 
-              msg._id === tempMessage._id ? messageData.message : msg
-            )
-          );
+      if (conversationId) {
+        const response = await messagesAPI.sendMessage(conversationId, inputMessage.trim());
+        
+        // Replace temp message with the real one from the server
+        if (response.data) {
+          const messageData = response.data as MessageResponse;
+          if (messageData.message) {
+            setMessages((prevMessages) =>
+              prevMessages.map(msg =>
+                msg._id === tempMessage._id ? messageData.message : msg
+              )
+            );
+          }
         }
       }
     } catch (error) {
@@ -290,7 +335,7 @@ const Chat: React.FC = () => {
                       : 'bg-card text-card-foreground border border-border'
                   }`}
                 >
-                  <p className="text-sm">{message.content}</p>
+                  <p className="text-sm">{message.text}</p>
                   <div
                     className={`text-xs mt-1 ${
                       isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'

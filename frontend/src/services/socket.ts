@@ -55,59 +55,59 @@ class SocketService {
   }
 
   // Message handling
-  sendMessage(matchId: string, content: string, attachments: any[] = []): void {
+  sendMessage(conversationId: string, text: string, attachments: any[] = []): void {
     if (!this.socket) {
       throw new Error('Socket not connected');
     }
 
-    this.socket.emit('private_message', {
-      matchId,
-      content,
+    this.socket.emit('send_message', {
+      conversationId,
+      text,
       attachments
     });
   }
 
-  joinMatchRoom(matchId: string): void {
+  joinConversation(conversationId: string): void {
     if (!this.socket) {
       throw new Error('Socket not connected');
     }
 
-    this.socket.emit('join_match', matchId);
+    this.socket.emit('join_conversation', conversationId);
   }
 
   // Typing indicators
-  sendTypingStart(matchId: string): void {
+  sendTypingStart(conversationId: string): void {
     if (!this.socket) {
       throw new Error('Socket not connected');
     }
 
-    this.socket.emit('typing_start', matchId);
+    this.socket.emit('typing_start', conversationId);
   }
 
-  sendTypingStop(matchId: string): void {
+  sendTypingStop(conversationId: string): void {
     if (!this.socket) {
       throw new Error('Socket not connected');
     }
 
-    this.socket.emit('typing_stop', matchId);
+    this.socket.emit('typing_stop', conversationId);
   }
 
   // Read receipts
-  markMessageAsRead(messageId: string): void {
+  markMessagesAsRead(conversationId: string): void {
     if (!this.socket) {
       throw new Error('Socket not connected');
     }
 
-    this.socket.emit('mark_read', messageId);
+    this.socket.emit('mark_messages_read', conversationId);
   }
 
   // Match notifications
-  sendMatchNotification(matchedUserId: string): void {
+  sendMatchNotification(matchData: any): void {
     if (!this.socket) {
       throw new Error('Socket not connected');
     }
 
-    this.socket.emit('new_match', { matchedUserId });
+    this.socket.emit('match_created', matchData);
   }
 }
 

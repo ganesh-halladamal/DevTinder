@@ -1,15 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const { createMatch, swipeUser, getMatches } = require('../controllers/matches');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
+const { areUsersMatched } = require('../middleware/authorization');
+const matchesController = require('../controllers/matches');
 
-// Create a new match
-router.post('/', auth, createMatch);
+// GET /matches/my-matches - Get all matches for the authenticated user
+router.get('/my-matches', auth, matchesController.getMyMatches);
 
-// Handle swipe actions (like/skip)
-router.post('/swipe', auth, swipeUser);
+// GET /matches/potential - Get potential matches for the user (must come before /:matchId)
+router.get('/potential', auth, matchesController.getPotentialMatches);
 
-// Get all matches for current user
-router.get('/', auth, getMatches);
+// POST /matches/like/:userId - Like a user
+router.post('/like/:userId', auth, matchesController.likeUser);
+
+// POST /matches/dislike/:userId - Dislike a user
+router.post('/dislike/:userId', auth, matchesController.dislikeUser);
+
+// GET /matches/:matchId - Get specific match details (must come after specific routes)
+router.get('/:matchId', auth, matchesController.getMatchDetails);
+
+// PUT /matches/:matchId/bookmark - Toggle bookmark status for a match
+router.put('/:matchId/bookmark', auth, matchesController.toggleBookmark);
 
 module.exports = router;

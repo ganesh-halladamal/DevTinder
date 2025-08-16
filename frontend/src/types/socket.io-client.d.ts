@@ -6,4 +6,8 @@ declare module 'socket.io-client' {
     off(event: string, listener?: (...args: any[]) => void): this;
     emit(event: string, ...args: any[]): boolean;
   }
-} 
+  
+  export function io(uri?: string, opts?: any): Socket;
+}
+
+export type { Socket };

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Heart, X, MapPin, Briefcase, BookOpen, RefreshCw, User, Sparkles, Star, Zap } from 'lucide-react';
+import { Heart, X, MapPin, Briefcase, RefreshCw, Loader2 } from 'lucide-react';
 import { formatAvatarUrl } from '../utils/imageUtils';
 import api from '../services/api';
+import { matchesAPI } from '../services/api';
 import ProfileViewModal from '../components/ProfileViewModal';
+import socketService from '../services/socket';
 
 interface User {
   _id: string;
@@ -26,15 +29,40 @@ interface User {
 }
 
 const Search: React.FC = () => {
+  const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState<string | null>(null);
+  const [matching, setMatching] = useState<string | null>(null);
   const [networkError, setNetworkError] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>();
+  const [isMatch, setIsMatch] = useState(false);
+  const [matchedUser, setMatchedUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetchUsers();
+    
+    // Set up socket listeners for real-time match notifications
+    const socket = socketService.getSocket();
+    if (socket) {
+      const handleMatchCreated = (data: any) => {
+        console.log('Real-time match notification received on Search page:', data);
+        setIsMatch(true);
+        setMatchedUser(data.user);
+        
+        // Auto-hide match notification after 5 seconds
+        setTimeout(() => {
+          setIsMatch(false);
+          setMatchedUser(null);
+        }, 5000);
+      };
+
+      socket.on('matchCreated', handleMatchCreated);
+      
+      return () => {
+        socket.off('matchCreated', handleMatchCreated);
+      };
+    }
   }, []);
 
   const fetchUsers = async () => {
@@ -43,7 +71,7 @@ const Search: React.FC = () => {
       setNetworkError(null);
 
       console.log('Fetching potential matches...');
-      const response = await api.get('/users/matches/potential');
+      const response = await api.get('/matches/potential');
       console.log('Potential matches response:', response.data);
 
       // Handle different response formats
@@ -95,26 +123,38 @@ const Search: React.FC = () => {
     }
   };
 
-  const handleConnect = async (targetUserId: string) => {
+  const handleMatch = async (targetUserId: string) => {
     try {
-      setConnecting(targetUserId);
+      setMatching(targetUserId);
       console.log('Sending like to user:', targetUserId);
 
-      const response = await api.post(`/users/matches/like/${targetUserId}`);
+      // Find the target user for potential match display
+      const targetUser = users.find(u => u._id === targetUserId);
+
+      const response = await matchesAPI.likeUser(targetUserId);
       const responseData = response.data as { message: string; isMatch?: boolean };
 
       console.log('Like response:', responseData);
 
       if (responseData.isMatch) {
-        alert('It\'s a match! You can now chat with each other.');
+        console.log("It's a match!");
+        setIsMatch(true);
+        setMatchedUser(targetUser || null);
+        
+        // Show match notification for 5 seconds
+        setTimeout(() => {
+          setIsMatch(false);
+          setMatchedUser(null);
+        }, 5000);
       } else {
-        alert('Connection request sent!');
+        console.log('Like sent successfully, no match yet');
       }
 
+      // Remove user from list regardless of match status
       setUsers(users.filter(u => u._id !== targetUserId));
 
     } catch (error: any) {
-      console.error('Error connecting:', error);
+      console.error('Error matching:', error);
       console.error('Error details:', {
         message: error.message,
         code: error.code,
@@ -122,12 +162,12 @@ const Search: React.FC = () => {
         status: error.response?.status
       });
 
-      let errorMessage = 'Connection failed';
+      let errorMessage = 'Match failed';
 
       if (error.code === 'ERR_NETWORK') {
         errorMessage = 'Network error - check connection';
       } else if (error.response?.status === 400) {
-        errorMessage = error.response.data?.message || 'Already connected';
+        errorMessage = error.response.data?.message || 'Already matched or liked';
       } else if (error.response?.status === 401) {
         errorMessage = 'Please login to continue';
       } else if (error.response?.status === 404) {
@@ -141,14 +181,14 @@ const Search: React.FC = () => {
       alert(errorMessage);
 
     } finally {
-      setConnecting(null);
+      setMatching(null);
     }
   };
 
   const handleSkip = async (targetUserId: string) => {
     try {
       console.log('Skipping user:', targetUserId);
-      await api.post(`/users/matches/dislike/${targetUserId}`);
+      await matchesAPI.dislikeUser(targetUserId);
       setUsers(users.filter(u => u._id !== targetUserId));
     } catch (error: any) {
       console.error('Error skipping user:', error);
@@ -243,6 +283,34 @@ const Search: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      {/* Match Notification Modal */}
+      {isMatch && matchedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full text-center animate-fade-in">
+            <div className="mb-4">
+              <Heart className="h-16 w-16 text-pink-500 mx-auto animate-bounce" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">It's a Match!</h2>
+            <p className="text-gray-600 mb-4">
+              You and {matchedUser.name} have liked each other.
+            </p>
+            <div className="flex justify-center space-x-4 mb-4">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-purple-500">
+                <img src={formatAvatarUrl(user?.avatar)} alt="You" className="w-full h-full object-cover" />
+              </div>
+              <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-pink-500">
+                <img src={formatAvatarUrl(matchedUser.avatar)} alt={matchedUser.name} className="w-full h-full object-cover" />
+              </div>
+            </div>
+            <Link to="/matches">
+              <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all">
+                Go to Matches
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto px-4">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 animate-fade-in">
@@ -314,22 +382,22 @@ const Search: React.FC = () => {
 
                 <div className="mt-4 flex space-x-2">
                   <motion.button
-                    onClick={() => handleConnect(user._id)}
-                    disabled={connecting === user._id}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2.5 px-4 rounded-lg hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    onClick={() => handleMatch(user._id)}
+                    disabled={matching === user._id}
+                    className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-2.5 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
-                    {connecting === user._id ? (
+                    {matching === user._id ? (
                       <>
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         >
-                          <RefreshCw className="w-4 h-4 mr-2" />
+                          <Loader2 className="w-4 h-4 mr-2" />
                         </motion.div>
-                        Connecting...
+                        Matching...
                       </>
                     ) : (
                       <>
@@ -339,14 +407,14 @@ const Search: React.FC = () => {
                         >
                           <Heart className="w-4 h-4 mr-2" fill="currentColor" />
                         </motion.div>
-                        Connect
+                        Match
                       </>
                     )}
                   </motion.button>
                   
                   <button
                     onClick={() => handleSkip(user._id)}
-                    disabled={connecting === user._id}
+                    disabled={matching === user._id}
                     className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 text-white py-2 px-4 rounded-lg hover:from-red-600 hover:to-rose-700 dark:from-red-600 dark:to-rose-700 dark:hover:from-red-700 dark:hover:to-rose-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg group-hover:shadow-lg"
                   >
                     <X className="w-4 h-4 mr-2" />

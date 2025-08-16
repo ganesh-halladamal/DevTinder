@@ -2,7 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const passport = require('passport');
 const authController = require('../controllers/auth');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -30,11 +30,34 @@ const loginValidation = [
   body('password').notEmpty().withMessage('Password is required')
 ];
 
+const passwordResetValidation = [
+  body('email').isEmail().withMessage('Please enter a valid email')
+];
+
+const resetPasswordValidation = [
+  body('token').notEmpty().withMessage('Reset token is required'),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long')
+];
+
+const resendVerificationValidation = [
+  body('email').isEmail().withMessage('Please enter a valid email')
+];
+
 // Auth routes
 router.post('/register', registerValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
 router.get('/me', auth, authController.getCurrentUser);
 router.post('/logout', auth, authController.logout);
+
+// Password reset routes
+router.post('/forgot-password', passwordResetValidation, authController.requestPasswordReset);
+router.post('/reset-password', resetPasswordValidation, authController.resetPassword);
+
+// Email verification routes
+router.get('/verify/:token', authController.verifyEmail);
+router.post('/resend-verification', resendVerificationValidation, authController.resendVerification);
 
 // GitHub OAuth routes
 router.get('/github',

@@ -10,6 +10,7 @@ const matchesRoutes = require("./routes/matches");
 const messagesRoutes = require("./routes/messages");
 const projectsRoutes = require("./routes/projects");
 const settingsRoutes = require("./routes/settings");
+const notificationsRoutes = require("./routes/notifications");
 
 const app = express();
 
@@ -54,14 +55,7 @@ app.use('/api/matches', matchesRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/projects', projectsRoutes);
 app.use('/api/settings', settingsRoutes);
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    message: err.message || 'Internal Server Error'
-  });
-});
+app.use('/api/notifications', notificationsRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -71,7 +65,9 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: 'Server error', error: err.message });
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error'
+  });
 });
 
 module.exports = app;

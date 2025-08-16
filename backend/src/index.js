@@ -44,6 +44,9 @@ const io = new Server(httpServer, {
 // Set up socket handlers
 setupSocketHandlers(io);
 
+// Make io instance available to the Express app
+app.set('io', io);
+
 // Function to check if a port is in use
 const isPortInUse = (port) => {
   return new Promise((resolve) => {

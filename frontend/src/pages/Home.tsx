@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { usersAPI, matchesAPI } from '../services/api';
-import { Heart, X, MapPin, Briefcase } from 'lucide-react';
+import { matchesAPI } from '../services/api';
+import socketService from '../services/socket';
+import { Heart, X, MapPin, Briefcase, Loader2 } from 'lucide-react';
 import { formatAvatarUrl } from '../utils/imageUtils';
 
 interface User {
@@ -25,69 +26,119 @@ const Home: React.FC = () => {
   const [animating, setAnimating] = useState(false);
   const [isMatch, setIsMatch] = useState(false);
   const [matchedUser, setMatchedUser] = useState<User | null>(null);
+  const [matchingInProgress, setMatchingInProgress] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadUsers();
+    
+    // Set up socket listeners for real-time match notifications
+    const socket = socketService.getSocket();
+    if (socket) {
+      const handleMatchCreated = (data: any) => {
+        console.log('Real-time match notification received:', data);
+        setIsMatch(true);
+        setMatchedUser(data.user);
+        
+        // Auto-hide match notification after 5 seconds
+        setTimeout(() => {
+          setIsMatch(false);
+          setMatchedUser(null);
+        }, 5000);
+      };
+
+      socket.on('matchCreated', handleMatchCreated);
+      
+      return () => {
+        socket.off('matchCreated', handleMatchCreated);
+      };
+    }
   }, []);
 
   const loadUsers = async () => {
     try {
       setIsLoading(true);
-      const response = await usersAPI.getPotentialMatches();
-      const potentialMatches = (response as any).data.users || [];
+      setError(null);
+      
+      console.log('Loading potential matches...');
+      const response = await matchesAPI.getPotentialMatches();
+      console.log('Potential matches response:', response);
+      
+      const potentialMatches = (response.data as User[]) || [];
+      console.log('Processed potential matches:', potentialMatches);
       
       setUsers(potentialMatches);
+      setCurrentIndex(0); // Reset to first user
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load users:', error);
+      setError(error.response?.data?.message || 'Failed to load potential matches');
       setIsLoading(false);
     }
   };
 
   const handleSwipe = async (direction: 'left' | 'right') => {
-    if (animating || currentIndex >= users.length) return;
+    if (animating || currentIndex >= users.length || matchingInProgress) return;
+    
+    const currentUserToMatch = users[currentIndex];
+    if (!currentUserToMatch) {
+      console.error('No current user to match');
+      return;
+    }
     
     setAnimating(true);
-    const currentUser = users[currentIndex];
-    console.log(`Swiped ${direction} on user ${currentUser?.name}`);
+    setError(null);
+    
+    console.log(`Swiping ${direction} on user:`, currentUserToMatch.name);
     
     try {
       if (direction === 'right') {
-        // Like user and check for match
-        const response = await usersAPI.likeUser(currentUser._id);
-        const isMatch = response.data.isMatch;
+        setMatchingInProgress(true);
+        console.log('Sending like request to:', currentUserToMatch._id);
         
-        if (isMatch) {
+        // Like user and check for match
+        const response = await matchesAPI.likeUser(currentUserToMatch._id);
+        console.log('Like response:', response.data);
+        
+        const responseData = response.data as any;
+        
+        if (responseData.isMatch) {
           console.log("It's a match!");
           setIsMatch(true);
-          setMatchedUser(currentUser);
+          setMatchedUser(currentUserToMatch);
           
-          // Create match in the database
-          await matchesAPI.createMatch(currentUser._id);
-          
-          // Show match notification for 3 seconds
+          // Show match notification for 5 seconds
           setTimeout(() => {
             setIsMatch(false);
             setMatchedUser(null);
-            setCurrentIndex(prev => prev + 1);
-            setAnimating(false);
-          }, 3000);
+            moveToNextUser();
+          }, 5000);
           return;
+        } else {
+          console.log('Like sent successfully, no match yet');
+          moveToNextUser();
         }
       } else {
         // Dislike user
-        await usersAPI.dislikeUser(currentUser._id);
+        console.log('Sending dislike request to:', currentUserToMatch._id);
+        await matchesAPI.dislikeUser(currentUserToMatch._id);
+        console.log('Dislike sent successfully');
+        moveToNextUser();
       }
-      
-      // Move to next user
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-        setAnimating(false);
-      }, 400);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error handling swipe:', error);
+      setError(error.response?.data?.message || `Failed to ${direction === 'right' ? 'like' : 'dislike'} user`);
       setAnimating(false);
+      setMatchingInProgress(false);
     }
+  };
+
+  const moveToNextUser = () => {
+    setTimeout(() => {
+      setCurrentIndex(prev => prev + 1);
+      setAnimating(false);
+      setMatchingInProgress(false);
+    }, 300);
   };
 
   // Using centralized formatAvatarUrl from imageUtils
@@ -116,6 +167,23 @@ const Home: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-md text-center">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-2xl font-bold mb-4 text-red-600">Error</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button 
+            onClick={loadUsers}
+            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (currentIndex >= users.length) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-md text-center">
@@ -124,11 +192,19 @@ const Home: React.FC = () => {
           <p className="text-gray-600 mb-6">
             Check back later for new developers or adjust your preferences.
           </p>
-          <Link to="/search">
-            <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all">
-              Browse All Developers
+          <div className="space-y-3">
+            <Link to="/search">
+              <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all">
+                Browse All Developers
+              </button>
+            </Link>
+            <button 
+              onClick={loadUsers}
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-all"
+            >
+              Refresh
             </button>
-          </Link>
+          </div>
         </div>
       </div>
     );
@@ -220,8 +296,8 @@ const Home: React.FC = () => {
         <div className="px-6 pb-6 flex justify-between gap-4">
           <button 
             onClick={() => handleSwipe('left')}
-            disabled={animating}
-            className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={animating || matchingInProgress}
+            className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <X className="h-5 w-5" />
             Pass
@@ -229,11 +305,20 @@ const Home: React.FC = () => {
           
           <button 
             onClick={() => handleSwipe('right')}
-            disabled={animating}
-            className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={animating || matchingInProgress}
+            className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Heart className="h-5 w-5" />
-            Match
+            {matchingInProgress ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Matching...
+              </>
+            ) : (
+              <>
+                <Heart className="h-5 w-5" />
+                Match
+              </>
+            )}
           </button>
         </div>
       </div>

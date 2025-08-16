@@ -4,8 +4,14 @@ import { messagesAPI } from '../services/api';
 
 interface Message {
   id: string;
-  content: string;
+  conversationId: string;
+  text: string;
   sender: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  receiver: {
     id: string;
     name: string;
     avatar?: string;
@@ -18,6 +24,7 @@ interface Message {
   }>;
   createdAt: string;
   status: 'sent' | 'delivered' | 'read';
+  read: boolean;
 }
 
 interface ChatState {
@@ -38,7 +45,7 @@ interface MessageResponse {
   };
 }
 
-export const useChat = (matchId: string) => {
+export const useChat = (conversationId: string) => {
   const [state, setState] = useState<ChatState>({
     messages: [],
     isLoading: true,
@@ -59,7 +66,7 @@ export const useChat = (matchId: string) => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       
-      const response = await messagesAPI.getMessages(matchId);
+      const response = await messagesAPI.getMessages(conversationId);
       const { messages, pagination } = response.data as MessageResponse;
       
       setState(prev => ({
@@ -77,7 +84,7 @@ export const useChat = (matchId: string) => {
       }));
       console.error('Error fetching messages:', error);
     }
-  }, [matchId]);
+  }, [conversationId]);
 
   // Load more messages
   const loadMore = useCallback(() => {
@@ -87,20 +94,26 @@ export const useChat = (matchId: string) => {
   }, [state.hasMore, state.isLoading, state.page, fetchMessages]);
 
   // Send a message
-  const sendMessage = useCallback(async (content: string, attachments: Message['attachments'] = []) => {
+  const sendMessage = useCallback(async (text: string, attachments: Message['attachments'] = []) => {
     try {
       // Optimistically add message to state
       const tempId = Date.now().toString();
       const tempMessage: Message = {
         id: tempId,
-        content,
+        conversationId,
+        text,
         sender: {
           id: 'currentUser', // This will be replaced with actual user ID
           name: 'You'
         },
+        receiver: {
+          id: 'otherUser', // This will be replaced with actual user ID
+          name: 'Other User'
+        },
         attachments,
         createdAt: new Date().toISOString(),
-        status: 'sent'
+        status: 'sent',
+        read: false
       };
 
       setState(prev => ({
@@ -109,7 +122,7 @@ export const useChat = (matchId: string) => {
       }));
 
       // Send message through socket
-      socketSendMessage(matchId, content, attachments);
+      socketSendMessage(conversationId, text, attachments);
     } catch (error) {
       console.error('Error sending message:', error);
       // Remove temp message on error
@@ -118,7 +131,26 @@ export const useChat = (matchId: string) => {
         messages: prev.messages.filter(m => m.id !== 'temp')
       }));
     }
-  }, [matchId, socketSendMessage]);
+  }, [conversationId, socketSendMessage]);
+
+  // Mark messages as read
+  const markAsRead = useCallback(async () => {
+    try {
+      await messagesAPI.markAsRead(conversationId);
+      
+      // Update local state
+      setState(prev => ({
+        ...prev,
+        messages: prev.messages.map(message => ({
+          ...message,
+          read: true,
+          status: 'read' as const
+        }))
+      }));
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  }, [conversationId]);
 
   // Handle incoming messages
   useEffect(() => {
@@ -142,11 +174,11 @@ export const useChat = (matchId: string) => {
       }));
     };
 
-    socket.on('message_received', handleNewMessage);
+    socket.on('receiveMessage', handleNewMessage);
     socket.on('message_status', handleMessageStatus);
 
     return () => {
-      socket.off('message_received', handleNewMessage);
+      socket.off('receiveMessage', handleNewMessage);
       socket.off('message_status', handleMessageStatus);
     };
   }, [socket]);
@@ -162,6 +194,7 @@ export const useChat = (matchId: string) => {
     error: state.error,
     hasMore: state.hasMore,
     loadMore,
-    sendMessage
+    sendMessage,
+    markAsRead
   };
-}; 
+};
