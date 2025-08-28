@@ -35,8 +35,13 @@ const Home: React.FC = () => {
     // Set up socket listeners for real-time match notifications
     const socket = socketService.getSocket();
     if (socket) {
+      console.log('Setting up socket listener on Home page');
+      
       const handleMatchCreated = (data: any) => {
-        console.log('Real-time match notification received:', data);
+        console.log('Real-time match notification received on Home page:', data);
+        console.log('Current user:', user?.name);
+        console.log('Matched with:', data.user?.name);
+        
         setIsMatch(true);
         setMatchedUser(data.user);
         
@@ -49,10 +54,46 @@ const Home: React.FC = () => {
 
       socket.on('matchCreated', handleMatchCreated);
       
+      // Also listen for socket connection status
+      socket.on('connect', () => {
+        console.log('Socket connected on Home page');
+      });
+      
+      socket.on('disconnect', () => {
+        console.log('Socket disconnected on Home page');
+      });
+      
       return () => {
         socket.off('matchCreated', handleMatchCreated);
+        socket.off('connect');
+        socket.off('disconnect');
       };
+    } else {
+      console.warn('No socket connection available on Home page');
     }
+  }, [user]);
+
+  // Add auto-refresh when user comes back to the page
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('Home page focused - refreshing potential matches');
+      loadUsers();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Home page became visible - refreshing potential matches');
+        loadUsers();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const loadUsers = async () => {
@@ -78,58 +119,81 @@ const Home: React.FC = () => {
   };
 
   const handleSwipe = async (direction: 'left' | 'right') => {
-    if (animating || currentIndex >= users.length || matchingInProgress) return;
+    console.log(`🔥 BUTTON CLICKED: ${direction === 'right' ? 'MATCH' : 'PASS'} button pressed!`);
+    
+    if (animating || currentIndex >= users.length || matchingInProgress) {
+      console.log('⚠️ Button action blocked:', { animating, currentIndex, usersLength: users.length, matchingInProgress });
+      return;
+    }
     
     const currentUserToMatch = users[currentIndex];
     if (!currentUserToMatch) {
-      console.error('No current user to match');
+      console.error('❌ No current user to match');
       return;
     }
     
     setAnimating(true);
     setError(null);
     
-    console.log(`Swiping ${direction} on user:`, currentUserToMatch.name);
+    console.log(`🚀 Swiping ${direction} on user:`, currentUserToMatch.name, 'ID:', currentUserToMatch._id);
     
     try {
       if (direction === 'right') {
         setMatchingInProgress(true);
-        console.log('Sending like request to:', currentUserToMatch._id);
+        console.log('💕 Sending like request to:', currentUserToMatch._id);
         
         // Like user and check for match
         const response = await matchesAPI.likeUser(currentUserToMatch._id);
-        console.log('Like response:', response.data);
+        console.log('✅ Like response:', response.data);
         
-        const responseData = response.data as any;
+        const responseData = response.data as { message: string; isMatch?: boolean; match?: any };
         
         if (responseData.isMatch) {
-          console.log("It's a match!");
+          console.log("🎉 It's a match!");
           setIsMatch(true);
           setMatchedUser(currentUserToMatch);
+          
+          // Move to next user immediately since this user is now matched
+          moveToNextUser();
           
           // Show match notification for 5 seconds
           setTimeout(() => {
             setIsMatch(false);
             setMatchedUser(null);
-            moveToNextUser();
           }, 5000);
           return;
         } else {
-          console.log('Like sent successfully, no match yet');
+          console.log('📤 Like sent successfully, no match yet');
+          // Move to next user since they've been liked
           moveToNextUser();
         }
       } else {
         // Dislike user
-        console.log('Sending dislike request to:', currentUserToMatch._id);
+        console.log('👎 Sending dislike request to:', currentUserToMatch._id);
         await matchesAPI.dislikeUser(currentUserToMatch._id);
-        console.log('Dislike sent successfully');
+        console.log('✅ Dislike sent successfully');
+        // Move to next user since they've been disliked
         moveToNextUser();
       }
     } catch (error: any) {
-      console.error('Error handling swipe:', error);
-      setError(error.response?.data?.message || `Failed to ${direction === 'right' ? 'like' : 'dislike'} user`);
-      setAnimating(false);
-      setMatchingInProgress(false);
+      console.error('❌ Error handling swipe:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        message: error.response?.data?.message,
+        data: error.response?.data
+      });
+      
+      // If user already interacted, just move to next user
+      if (error.response?.status === 400 && error.response?.data?.message?.includes('already')) {
+        console.log('ℹ️ User already interacted with, moving to next');
+        moveToNextUser();
+      } else {
+        const errorMessage = error.response?.data?.message || `Failed to ${direction === 'right' ? 'like' : 'dislike'} user`;
+        console.error('💥 Setting error:', errorMessage);
+        setError(errorMessage);
+        setAnimating(false);
+        setMatchingInProgress(false);
+      }
     }
   };
 
@@ -193,11 +257,7 @@ const Home: React.FC = () => {
             Check back later for new developers or adjust your preferences.
           </p>
           <div className="space-y-3">
-            <Link to="/search">
-              <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all">
-                Browse All Developers
-              </button>
-            </Link>
+
             <button 
               onClick={loadUsers}
               className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-all"
@@ -211,6 +271,11 @@ const Home: React.FC = () => {
   }
 
   const currentUser = users[currentIndex];
+
+  // Additional safety check
+  if (!currentUser && !isLoading && !error) {
+    console.log('⚠️ No current user available, currentIndex:', currentIndex, 'users length:', users.length);
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-md">
@@ -295,18 +360,26 @@ const Home: React.FC = () => {
         
         <div className="px-6 pb-6 flex justify-between gap-4">
           <button 
-            onClick={() => handleSwipe('left')}
+            onClick={() => {
+              console.log('🔴 Pass button clicked!');
+              handleSwipe('left');
+            }}
             disabled={animating || matchingInProgress}
-            className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+            type="button"
           >
             <X className="h-5 w-5" />
             Pass
           </button>
           
           <button 
-            onClick={() => handleSwipe('right')}
+            onClick={() => {
+              console.log('💚 Match button clicked!');
+              handleSwipe('right');
+            }}
             disabled={animating || matchingInProgress}
-            className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+            type="button"
           >
             {matchingInProgress ? (
               <>
@@ -323,13 +396,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-8 text-center">
-        <Link to="/search">
-          <button className="text-purple-600 hover:text-purple-700 font-medium">
-            Browse all developers →
-          </button>
-        </Link>
-      </div>
+
     </div>
   );
 };

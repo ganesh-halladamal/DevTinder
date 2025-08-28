@@ -13,7 +13,7 @@ import Matches from './pages/Matches';
 import Chat from './pages/Chat';
 import Settings from './pages/Settings';
 import ForgotPassword from './pages/ForgotPassword';
-import Search from './pages/Search';
+
 import Notifications from './pages/Notifications';
 import Projects from './pages/Projects';
 import NotFound from './pages/NotFound';
@@ -43,7 +43,7 @@ const App = () => {
           <Route path="/settings" element={<Settings />} />
           <Route path="/matches" element={<Matches />} />
           <Route path="/chat/:matchId" element={<Chat />} />
-          <Route path="/search" element={<Search />} />
+
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/projects" element={<Projects />} />
         </Route>

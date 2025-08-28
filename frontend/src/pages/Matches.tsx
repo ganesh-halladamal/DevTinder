@@ -268,9 +268,7 @@ const Matches: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-4 justify-center">
-              <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                <Link to="/search">Find Matches</Link>
-              </Button>
+
               <Button
                 variant="outline"
                 onClick={fetchMatches}
@@ -295,7 +293,7 @@ const Matches: React.FC = () => {
           {isConnected ? (
             <div className="flex items-center gap-2 text-green-600 text-sm">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              Real-time updates enabled
+              
             </div>
           ) : (
             <div className="flex items-center gap-2 text-yellow-600 text-sm">

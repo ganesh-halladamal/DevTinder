@@ -21,8 +21,8 @@ const api = axios.create({
   },
   // Add timeout
   timeout: 10000,
-  // Add withCredentials for cookies if needed
-  withCredentials: true
+  // Don't use withCredentials since we're using token-based auth
+  withCredentials: false
 });
 
 // Add request interceptor to add auth token
@@ -31,6 +31,12 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Adding auth token to request:', { 
+        url: config.url,
+        headers: config.headers 
+      });
+    } else {
+      console.log('No token found in localStorage');
     }
     return config;
   },

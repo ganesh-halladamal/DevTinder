@@ -6,20 +6,30 @@ const connectDB = async () => {
   try {
     // Try using MongoDB Atlas first
     try {
-      const uri = process.env.MONGODB_URI || 'mongodb+srv://codebotnetgh:AMtfmJYPjAokomd9@devtinder.xrgga09.mongodb.net/';
+      // Updated connection string with database name and options
+      const uri = process.env.MONGODB_URI || 'mongodb+srv://codebotnetgh:AMtfmJYPjAokomd9@devtinder.xrgga09.mongodb.net/test?retryWrites=true&w=majority';
       console.log("Connecting to MongoDB Atlas:", uri);
       
       await mongoose.connect(uri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000
+        socketTimeoutMS: 45000,
+        maxPoolSize: 10,
+        dbName: 'test', // Explicitly set the database name
+        serverApi: {
+          version: '1',
+          strict: true,
+          deprecationErrors: true
+        }
       });
       console.log('Connected to MongoDB Atlas successfully');
       
       // Check database stats without seeding
-      const userCount = await mongoose.connection.db.collection('users').countDocuments();
-      console.log(`Database contains ${userCount} users.`);
+      const db = mongoose.connection.db;
+      const collections = await db.listCollections().toArray();
+      console.log('Available collections:', collections.map(c => c.name));
+      
+      const userCount = await db.collection('users').countDocuments();
+      console.log(`Database '${db.databaseName}' contains ${userCount} users.`);
       
       // Create database indexes for performance
       await createDatabaseIndexes();

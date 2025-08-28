@@ -4,12 +4,17 @@ const User = require('../models/user');
 
 // Middleware to authenticate JWT token
 const auth = (req, res, next) => {
+  // Log the incoming authorization header
+  console.log('Auth Header:', req.headers.authorization);
+  
   passport.authenticate('jwt', { session: false }, (err, user, info) => {
     if (err) {
+      console.error('JWT Authentication Error:', err);
       return next(err);
     }
     
     if (!user) {
+      console.log('Authentication failed:', { info });
       return res.status(401).json({
         message: info ? info.message : 'Authentication required'
       });

@@ -326,18 +326,43 @@ const Chat: React.FC = () => {
             return (
               <div
                 key={message._id}
-                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4`}
               >
+                {/* Receiver avatar on the left (only show for receiver messages) */}
+                {!isOwnMessage && (
+                  <div className="flex-shrink-0 mr-3">
+                    {message.sender.avatar ? (
+                      <img
+                        src={formatAvatarUrl(message.sender.avatar)}
+                        alt={message.sender.name}
+                        className="w-8 h-8 rounded-full"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
+                        <span className="text-sm font-medium text-accent-foreground">
+                          {message.sender.name[0]}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 <div
-                  className={`max-w-xs md:max-w-md rounded-lg px-4 py-2 ${
+                  className={`max-w-xs md:max-w-md rounded-2xl px-4 py-2 ${
                     isOwnMessage
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-card text-card-foreground border border-border'
+                      ? 'bg-primary text-primary-foreground rounded-br-sm'
+                      : 'bg-card text-card-foreground border border-border rounded-bl-sm'
                   }`}
                 >
+                  {/* Receiver name label for non-own messages */}
+                  {!isOwnMessage && (
+                    <div className="text-xs font-medium text-muted-foreground mb-1">
+                      {message.sender.name}
+                    </div>
+                  )}
                   <p className="text-sm">{message.text}</p>
                   <div
-                    className={`text-xs mt-1 ${
+                    className={`text-xs mt-1 flex justify-end ${
                       isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
                     }`}
                   >
@@ -345,8 +370,33 @@ const Chat: React.FC = () => {
                       hour: '2-digit',
                       minute: '2-digit'
                     })}
+                    {/* Message status indicators for own messages */}
+                    {isOwnMessage && (
+                      <span className="ml-2">
+                        {message.status === 'read' ? '✓✓' : message.status === 'delivered' ? '✓' : ''}
+                      </span>
+                    )}
                   </div>
                 </div>
+                
+                {/* Sender avatar on the right (only show for own messages) */}
+                {isOwnMessage && (
+                  <div className="flex-shrink-0 ml-3">
+                    {message.sender.avatar ? (
+                      <img
+                        src={formatAvatarUrl(message.sender.avatar)}
+                        alt={message.sender.name}
+                        className="w-8 h-8 rounded-full"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-sm font-medium text-primary">
+                          {message.sender.name[0]}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

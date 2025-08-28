@@ -174,6 +174,9 @@ const likeUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Check if current user has already liked this target user (to prevent duplicates)
+    const currentUserData = await User.findById(currentUserId);
+    
     // Check if there's already a match between these users
     const existingMatch = await Match.findMatch(currentUserId, targetUserId);
 
@@ -184,12 +187,13 @@ const likeUser = async (req, res) => {
         users: existingMatch.users
       });
 
-      // If there's already any interaction (pending, matched, or rejected), don't create a new one
+      // If there's already any interaction (pending, matched, or rejected), handle accordingly
       if (existingMatch.status === 'pending') {
-        // Check if this is a mutual like (the target user has already liked the current user)
-        const targetUserInitiated = existingMatch.users[0].toString() === targetUserId;
+        // Check if this is a mutual like by verifying if the target user has already liked the current user
+        const targetUserData = await User.findById(targetUserId);
+        const targetUserHasLikedCurrent = targetUserData.likes && targetUserData.likes.includes(currentUserId);
         
-        if (targetUserInitiated) {
+        if (targetUserHasLikedCurrent) {
           console.log('Mutual like detected - creating match!');
           // It's a match! Update the existing match
           existingMatch.status = 'matched';
@@ -279,8 +283,7 @@ const likeUser = async (req, res) => {
       });
     }
 
-    // Check if current user has already liked this target user (to prevent duplicates)
-    const currentUserData = await User.findById(currentUserId);
+    // If no existing match, check if current user has already liked this target user
     if (currentUserData.likes && currentUserData.likes.includes(targetUserId)) {
       console.log('User has already liked this person');
       return res.json({
@@ -415,11 +418,18 @@ const getPotentialMatches = async (req, res) => {
   try {
     const userId = req.user._id;
     
+    // Get the current user to check their likes
+    const currentUser = await User.findById(userId, 'likes');
+    const userLikes = currentUser.likes || [];
+    
     // Use aggregation pipeline for better performance
     const potentialMatches = await User.aggregate([
       {
         $match: {
-          _id: { $ne: userId },
+          _id: { 
+            $ne: userId,
+            $nin: userLikes  // Exclude users that current user has already liked
+          },
           isActive: true
         }
       },
@@ -433,18 +443,19 @@ const getPotentialMatches = async (req, res) => {
                 $expr: {
                   $and: [
                     { $in: ['$$currentUserId', '$users'] },
-                    { $in: ['$$targetUserId', '$users'] }
+                    { $in: ['$$targetUserId', '$users'] },
+                    { $eq: ['$status', 'matched'] }  // Only exclude fully matched users
                   ]
                 }
               }
             }
           ],
-          as: 'existingMatch'
+          as: 'matchedRecords'
         }
       },
       {
         $match: {
-          existingMatch: { $size: 0 }
+          matchedRecords: { $size: 0 } // Exclude users who are already fully matched
         }
       },
       {
@@ -461,6 +472,8 @@ const getPotentialMatches = async (req, res) => {
         $limit: 20
       }
     ]);
+
+
 
     res.json(potentialMatches);
   } catch (error) {
