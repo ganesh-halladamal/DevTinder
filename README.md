@@ -2,6 +2,11 @@
 
 A developer-focused networking platform inspired by Tinder, designed to connect developers for collaboration, mentorship, and networking.
 
+## Repositories
+
+- **Frontend**: [DevTinder](https://github.com/ganesh-halladamal/DevTinder) (Current Repository)
+- **Backend**: [DevTinder-Server](https://github.com/ganesh-halladamal/DevTiner-Server)
+
 ## Features
 
 - 👤 User Authentication & Profiles
@@ -41,32 +46,6 @@ A developer-focused networking platform inspired by Tinder, designed to connect 
 - Zustand for state management
 - Socket.IO client
 
-## Project Structure
-
-```
-devtinder/
-├── backend/                # Express.js server
-│   ├── src/
-│   │   ├── config/        # Configuration files
-│   │   ├── controllers/   # Route controllers
-│   │   ├── middleware/    # Custom middleware
-│   │   ├── models/        # MongoDB models
-│   │   ├── routes/        # API routes
-│   │   ├── services/      # Business logic
-│   │   └── utils/         # Utility functions
-│   └── tests/             # Backend tests
-├── frontend/              # React application
-│   ├── src/
-│   │   ├── components/    # Reusable components
-│   │   ├── context/      # React Context
-│   │   ├── hooks/        # Custom hooks
-│   │   ├── pages/        # Page components
-│   │   ├── services/     # API services
-│   │   └── utils/        # Utility functions
-│   └── tests/            # Frontend tests
-└── README.md             # Project documentation
-```
-
 ## Getting Started
 
 ### Prerequisites
@@ -76,15 +55,19 @@ devtinder/
 
 ### Installation & Setup
 
-1. Clone the repository
+1. Clone the repositories
 ```bash
+# Clone frontend
 git clone https://github.com/ganesh-halladamal/DevTinder.git
-cd devtinder
+cd DevTinder
+
+# Clone backend (in a separate directory)
+git clone https://github.com/ganesh-halladamal/DevTiner-Server.git
 ```
 
 2. Backend Setup
 ```bash
-cd backend
+cd DevTiner-Server
 npm install
 # Create .env file with required environment variables
 npm run dev
@@ -97,7 +80,7 @@ NODE_ENV=development
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 JWT_EXPIRES_IN=7d
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:5173
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
 GOOGLE_CLIENT_ID=your_google_client_id
@@ -106,7 +89,7 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 
 3. Frontend Setup
 ```bash
-cd frontend
+cd DevTinder
 npm install
 # Create .env file with required environment variables
 npm run dev
@@ -118,24 +101,25 @@ VITE_API_URL=http://localhost:5000/api
 VITE_SOCKET_URL=http://localhost:5000
 VITE_GITHUB_CLIENT_ID=your_github_client_id
 VITE_GOOGLE_CLIENT_ID=your_google_client_id
+VITE_REDIRECT_URL=http://localhost:5173
 ```
 
 ### Running the Application
 
 1. Start the backend server:
 ```bash
-cd backend
+cd DevTiner-Server
 npm run dev
 ```
 
 2. Start the frontend development server:
 ```bash
-cd frontend
+cd DevTinder
 npm run dev
 ```
 
 The application will be available at:
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:5173 (Vite default port)
 - Backend API: http://localhost:5000
 - API Documentation: http://localhost:5000/api-docs
 
@@ -149,13 +133,14 @@ The application will be available at:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-# Author: Ganesh Halladamal
+## Author
 
-
-
-
+Ganesh Halladamal
 
 
->>>>>>> 149629b42f8358b448f5c8672e19354ea49e2f79
+
+
+
+
