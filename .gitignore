@@ -4,8 +4,7 @@ node_modules/
 .pnp.js
 
 Environment files
-.env
-.env.local
+
 .env.development.local
 .env.test.local
 .env.production.local
@@ -46,7 +45,6 @@ yarn-error.log*
 # Misc
 *.log
 .DS_Store
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local 
