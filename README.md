@@ -73,7 +73,9 @@ npm install
 npm run dev
 ```
 
-Required backend environment variables (.env):
+Required backend environment variables:
+
+**Development (.env):**
 ```env
 PORT=5000
 NODE_ENV=development
@@ -87,6 +89,23 @@ GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 ```
 
+**Production (.env.production):**
+```env
+PORT=5000
+NODE_ENV=production
+MONGODB_URI=your_production_mongodb_connection_string
+JWT_SECRET=your_production_jwt_secret
+JWT_EXPIRES_IN=7d
+FRONTEND_URL=https://your-frontend-domain.com
+CORS_ORIGIN=https://your-frontend-domain.com
+GITHUB_CLIENT_ID=your_production_github_client_id
+GITHUB_CLIENT_SECRET=your_production_github_client_secret
+GOOGLE_CLIENT_ID=your_production_google_client_id
+GOOGLE_CLIENT_SECRET=your_production_google_client_secret
+```
+
+**Important:** Update `FRONTEND_URL` and `CORS_ORIGIN` in production to match your deployed frontend URL for proper CORS configuration.
+
 3. Frontend Setup
 ```bash
 cd DevTinder
@@ -95,14 +114,36 @@ npm install
 npm run dev
 ```
 
-Required frontend environment variables (.env):
+Required frontend environment variables:
+
+**Development (.env or .env.local):**
 ```env
 VITE_API_URL=http://localhost:5000/api
 VITE_SOCKET_URL=http://localhost:5000
+VITE_APP_NAME=DevTinder
 VITE_GITHUB_CLIENT_ID=your_github_client_id
 VITE_GOOGLE_CLIENT_ID=your_google_client_id
 VITE_REDIRECT_URL=http://localhost:5173
 ```
+
+**Production (.env.production):**
+```env
+VITE_API_URL=https://your-backend-domain.com/api
+VITE_SOCKET_URL=https://your-backend-domain.com
+VITE_APP_NAME=DevTinder
+VITE_GITHUB_CLIENT_ID=your_production_github_client_id
+VITE_GOOGLE_CLIENT_ID=your_production_google_client_id
+VITE_REDIRECT_URL=https://your-frontend-domain.com
+```
+
+**Note:** All API endpoints are now prefixed with `/api`:
+- Authentication: `/api/auth/*`
+- Users: `/api/users/*`
+- Matches: `/api/matches/*`
+- Messages: `/api/messages/*`
+- Projects: `/api/projects/*`
+- Settings: `/api/settings/*`
+- Notifications: `/api/notifications/*`
 
 ### Running the Application
 

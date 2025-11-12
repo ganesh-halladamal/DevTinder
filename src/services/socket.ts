@@ -1,5 +1,4 @@
-import { io } from 'socket.io-client';
-import type { Socket } from 'socket.io-client';
+import io from 'socket.io-client';
 
 class SocketService {
   private socket: any = null;
@@ -20,6 +19,7 @@ class SocketService {
       const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
       
       console.log('Connecting to socket at:', socketUrl);
+      console.log('Using token:', token ? 'Token present' : 'No token');
       
       this.socket = io(socketUrl, {
         auth: { token },

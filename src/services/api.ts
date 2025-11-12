@@ -7,11 +7,9 @@ declare global {
   }
 }
 
-export const API_URL = import.meta.env.VITE_API_URL || '/api';
-export const BASE_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') : 'http://localhost:5000';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 console.log('API URL:', API_URL); // Log the API URL for debugging
-console.log('Base URL:', BASE_URL); // Log the base URL for debugging
 
 // Create axios instance
 const api = axios.create({
